@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v27 (排序功能:時間/金額)</title>
+    <title>購物計算機 v28 (排序選單+UI修復)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -59,7 +59,7 @@
                 </div>
                 
                 <div class="flex gap-2">
-                    <button id="btnSort" class="p-2 bg-blue-500 hover:bg-blue-400 rounded-lg shadow-sm transition-colors border border-blue-400/50" title="切換排序">
+                    <button id="btnSort" class="p-2 bg-blue-500 hover:bg-blue-400 rounded-lg shadow-sm transition-colors border border-blue-400/50" title="排序">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
                     </button>
                     <button id="btnDb" class="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg shadow-sm transition-colors" title="公共庫存">
@@ -88,11 +88,9 @@
                         <div class="flex items-center">
                             <span>≈</span><span id="dispConverted">$0</span><span id="lblTarget">TWD</span>
                         </div>
-                        
                         <div class="text-[10px] bg-blue-400/20 px-2 py-0.5 rounded text-blue-50 border border-blue-300/20">
                             共 <span id="dispCount" class="font-bold text-white">0</span> 項 / <span id="dispTotalQty" class="font-bold text-white">0</span> 件
                         </div>
-
                         <span class="text-[10px] opacity-60 ml-1 border-l border-white/20 pl-2">匯率: <span id="dispRate">1</span></span>
                     </div>
                 </div>
@@ -142,6 +140,22 @@
         </div>
     </div>
 
+    <div id="modalSort" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden modal-enter">
+            <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-600"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
+                    選擇排序方式
+                </h3>
+                <button onclick="document.getElementById('modalSort').classList.add('hidden')" class="btn-close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-4 space-y-2" id="sortOptionsContainer">
+                </div>
+        </div>
+    </div>
+
     <div id="modalSettings" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden modal-enter">
             <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
@@ -159,17 +173,14 @@
                         <label class="block text-xs font-bold text-slate-500 mb-1">消費幣別</label>
                         <select id="selBase" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"></select>
                     </div>
-                    
                     <button id="btnSwapCurrency" class="mb-1 p-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg transition-colors" title="交換幣別">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4L11 8"/><path d="M17 8V20M17 20L21 16M17 20L13 16"/></svg>
                     </button>
-                    
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-slate-500 mb-1">換算幣別</label>
                         <select id="selTarget" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"></select>
                     </div>
                 </div>
-                
                 <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <label class="block text-xs font-bold text-slate-400 mb-1">當前匯率 (1 <span id="lblBaseSet">TWD</span> = ? <span id="lblTargetSet">TWD</span>)</label>
                     <div class="flex gap-2">
@@ -220,7 +231,7 @@
     </div>
 
     <div id="modalExport" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-sm shadow-xl flex flex-col max-h-[85vh] modal-enter">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-xl flex flex-col max-h-[85vh] modal-enter overflow-hidden">
             <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
                 <h3 class="font-bold text-lg text-slate-800">匯出與備份</h3>
                 <button onclick="document.getElementById('modalExport').classList.add('hidden')" class="btn-close">
@@ -350,7 +361,7 @@
         let settings = JSON.parse(localStorage.getItem('exSettings')) || { base: 'TWD', target: 'TWD', rate: 1 };
         let html5QrCode = null;
 
-        // 排序設定 (新增)
+        // 排序設定
         const SORT_MODES = [
             { id: 'time_desc', name: '🕒 時間 (新→舊)', fn: (a,b) => b.timestamp - a.timestamp },
             { id: 'time_asc', name: '🕒 時間 (舊→新)', fn: (a,b) => a.timestamp - b.timestamp },
@@ -396,7 +407,7 @@
 
             firebase.firestore().collection('users').doc(user.uid).collection('shopping_list').orderBy('timestamp', 'desc').onSnapshot(snap => {
                 items = snap.docs.map(d => ({ ...d.data(), id: d.id })); 
-                renderList(); // Render handles sorting
+                renderList(); 
             });
         }
 
@@ -595,14 +606,29 @@
                 showToast("已清空");
             });
 
-            // 排序按鈕
+            // 排序按鈕 - 開啟選單
             document.getElementById('btnSort').onclick = () => {
-                const currentIndex = SORT_MODES.findIndex(m => m.id === currentSortModeId);
-                const nextIndex = (currentIndex + 1) % SORT_MODES.length;
-                currentSortModeId = SORT_MODES[nextIndex].id;
-                localStorage.setItem('sortMode', currentSortModeId);
-                showToast(`排序: ${SORT_MODES[nextIndex].name}`);
+                const container = document.getElementById('sortOptionsContainer');
+                container.innerHTML = SORT_MODES.map(mode => {
+                    const isActive = mode.id === currentSortModeId;
+                    return `
+                        <button onclick="selectSort('${mode.id}')" class="w-full text-left px-4 py-3 rounded-xl flex items-center justify-between transition-colors ${isActive ? 'bg-blue-50 text-blue-600 font-bold border border-blue-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}">
+                            <span>${mode.name}</span>
+                            ${isActive ? '<span class="text-blue-600">✅</span>' : ''}
+                        </button>
+                    `;
+                }).join('');
+                document.getElementById('modalSort').classList.remove('hidden');
+            };
+
+            // 全域排序選擇函數
+            window.selectSort = (id) => {
+                currentSortModeId = id;
+                localStorage.setItem('sortMode', id);
                 renderList();
+                document.getElementById('modalSort').classList.add('hidden');
+                const name = SORT_MODES.find(m => m.id === id).name;
+                showToast(`已切換: ${name}`);
             };
 
             document.getElementById('formItem').onsubmit = async (e) => {

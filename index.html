@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v28 (排序選單+UI修復)</title>
+    <title>購物計算機 v29 (單價排序)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -151,8 +151,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
-            <div class="p-4 space-y-2" id="sortOptionsContainer">
-                </div>
+            <div class="p-4 space-y-2" id="sortOptionsContainer"></div>
         </div>
     </div>
 
@@ -361,12 +360,12 @@
         let settings = JSON.parse(localStorage.getItem('exSettings')) || { base: 'TWD', target: 'TWD', rate: 1 };
         let html5QrCode = null;
 
-        // 排序設定
+        // 排序設定 (修正為純單價排序)
         const SORT_MODES = [
             { id: 'time_desc', name: '🕒 時間 (新→舊)', fn: (a,b) => b.timestamp - a.timestamp },
             { id: 'time_asc', name: '🕒 時間 (舊→新)', fn: (a,b) => a.timestamp - b.timestamp },
-            { id: 'price_desc', name: '💲 金額 (高→低)', fn: (a,b) => (b.price*(b.qty||1)) - (a.price*(a.qty||1)) },
-            { id: 'price_asc', name: '💲 金額 (低→高)', fn: (a,b) => (a.price*(a.qty||1)) - (b.price*(b.qty||1)) }
+            { id: 'price_desc', name: '💲 單價 (高→低)', fn: (a,b) => b.price - a.price },
+            { id: 'price_asc', name: '💲 單價 (低→高)', fn: (a,b) => a.price - b.price }
         ];
         let currentSortModeId = localStorage.getItem('sortMode') || 'time_desc';
 

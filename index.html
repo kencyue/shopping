@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v21 (幣別標示+掃描修復)</title>
+    <title>購物計算機 v22 (備份管理+UI優化)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -376,7 +376,7 @@
             });
         }
 
-        // --- Logic: Export (Fix 1: Add Currency Labels) ---
+        // --- Logic: Export ---
         async function getExportBlob(type) {
             const dateStr = new Date().toLocaleDateString().replace(/\//g, '-');
             const filename = `ShoppingList_${dateStr}`;
@@ -400,11 +400,9 @@
             const el = document.getElementById('exportReceipt');
 
             if (type === 'png') {
-                // 使用 html2canvas
                 const canvas = await html2canvas(el, { scale: 2, useCORS: true });
                 return new Promise(resolve => canvas.toBlob(blob => resolve({ blob, filename: filename+'.png', mime: 'image/png' })));
             } else if (type === 'xlsx') {
-                // 製作 Excel 資料 (包含幣別)
                 const excelData = items.map(i => {
                     let obj = {};
                     obj['品名'] = i.name;
@@ -485,8 +483,14 @@
                 container.innerHTML = snap.docs.map(doc => {
                     const data = doc.data();
                     return `<div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <div><div class="text-sm font-bold text-slate-700">${data.displayName}</div><div class="text-[10px] text-slate-400">${(data.items||[]).length} 項目</div></div>
-                        <button onclick="restoreBackup('${doc.id}')" class="text-xs bg-white border border-slate-200 text-blue-600 px-3 py-1.5 rounded font-bold hover:bg-blue-50">還原</button>
+                        <div class="flex-1 min-w-0 pr-2">
+                            <div class="text-sm font-bold text-slate-700 truncate">${data.displayName}</div>
+                            <div class="text-[10px] text-slate-400">${(data.items||[]).length} 項目</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="restoreBackup('${doc.id}')" class="text-xs bg-white border border-slate-200 text-blue-600 px-3 py-1.5 rounded font-bold hover:bg-blue-50">還原</button>
+                            <button onclick="deleteBackup('${doc.id}')" class="text-slate-400 hover:text-red-500 p-1.5 font-bold">✕</button>
+                        </div>
                     </div>`;
                 }).join('');
             } catch(e) { container.innerHTML = '<div class="text-center py-4 text-xs text-red-400">載入失敗</div>'; }
@@ -515,6 +519,14 @@
                 } catch(e) { alert("還原失敗: " + e.message); }
             });
         };
+
+        window.deleteBackup = (id) => showConfirm("刪除備份", "確定刪除此備份？無法復原。", async () => {
+            try {
+                await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups').doc(id).delete();
+                showToast("已刪除備份");
+                loadBackups();
+            } catch(e) { alert("刪除失敗: " + e.message); }
+        });
 
         // --- Misc ---
         function initCurrencySelects() {
@@ -596,21 +608,15 @@
                 btn.textContent="線上更新";
             };
             
-            // --- Scanner Logic (Fix 2: Firefox Compatibility) ---
+            // --- Scanner Logic ---
             document.getElementById('btnScan').onclick = () => { 
                 document.getElementById('modalScan').classList.remove('hidden'); 
                 
-                // 確保先清除舊的 instance
-                if(html5QrCode) { 
-                    try { html5QrCode.clear(); } catch(e){} 
-                }
+                if(html5QrCode) { try { html5QrCode.clear(); } catch(e){} }
                 
                 html5QrCode = new Html5Qrcode("reader");
-                
                 const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
                 
-                // Firefox 在 Android 上有時會因為 aspect ratio 問題導致無法啟動
-                // 這裡嘗試標準啟動，若失敗則捕捉錯誤
                 html5QrCode.start({ facingMode: "environment" }, qrConfig, async txt => {
                     if(isProcessingScan) return;
                     isProcessingScan = true;
@@ -695,7 +701,7 @@
                 document.getElementById('dbListContainer').innerHTML = snap.empty ? '<div class="text-center py-10 text-slate-400">空</div>' : snap.docs.map(d => `
                     <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 mb-2">
                         <div class="overflow-hidden mr-3"><div class="font-bold text-sm text-slate-700 truncate">${d.data().name}</div><div class="text-[10px] font-mono text-indigo-400">${d.id}</div></div>
-                        ${isAdmin ? `<button onclick="delPub('${d.id}')" class="text-red-500 text-xs border border-red-200 p-1 rounded">刪</button>` : ''}
+                        ${isAdmin ? `<button onclick="delPub('${d.id}')" class="text-slate-400 hover:text-red-500 p-2 font-bold">✕</button>` : ''}
                     </div>`).join('');
             } catch(e) { document.getElementById('dbListContainer').innerHTML='<div class="text-center text-red-400">失敗</div>'; }
         }

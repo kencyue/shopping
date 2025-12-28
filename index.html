@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v20 (多國貨幣版)</title>
+    <title>購物計算機 v21 (幣別標示+掃描修復)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -21,8 +21,8 @@
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         #reader video { object-fit: cover; border-radius: 12px; }
         
-        /* 隱藏收據 */
-        #exportReceipt { position: fixed; top: -9999px; left: 0; width: 500px; background: white; padding: 20px; color: #1e293b; z-index: -1; }
+        /* 隱藏收據 - 調整樣式以適應匯出 */
+        #exportReceipt { position: fixed; top: -9999px; left: 0; width: 600px; background: white; padding: 40px; color: #1e293b; z-index: -1; font-family: sans-serif; }
         
         /* 可編輯欄位樣式 */
         [contenteditable="true"] { border-bottom: 1px dashed #cbd5e1; transition: all 0.2s; padding: 0 2px; }
@@ -284,20 +284,31 @@
     <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl z-[70] opacity-0 transition-opacity whitespace-nowrap"></div>
 
     <div id="exportReceipt">
-        <div style="text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-            <h2 style="color: #2563eb; margin:0; font-size:24px;">購物清單</h2>
-            <p id="receiptDate" style="color:#666; font-size:12px; margin:5px 0 0 0;"></p>
+        <div style="text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 15px;">
+            <h2 style="color: #2563eb; margin:0; font-size:28px; font-weight: 800;">購物清單</h2>
+            <p id="receiptDate" style="color:#64748b; font-size:14px; margin:5px 0 0 0;"></p>
         </div>
-        <table style="width: 100%; border-collapse: collapse;">
-            <tr style="border-bottom: 2px solid #333;"><th style="text-align:left; padding:5px">品名</th><th style="text-align:right">價格</th><th style="text-align:right">約</th></tr>
+        <table style="width: 100%; border-collapse: collapse; font-size: 16px;">
+            <thead>
+                <tr style="border-bottom: 2px solid #334155; color: #334155;">
+                    <th style="text-align:left; padding:8px">品名</th>
+                    <th style="text-align:right; padding:8px" id="receiptThBase">價格</th>
+                    <th style="text-align:right; padding:8px" id="receiptThTarget">約</th>
+                </tr>
+            </thead>
             <tbody id="receiptItems"></tbody>
-            <tr style="border-top: 2px solid #333;"><td style="padding-top:10px; font-weight:bold">總計</td><td style="text-align:right; padding-top:10px" id="receiptTotalBase"></td><td style="text-align:right; padding-top:10px; color:#2563eb; font-weight:bold" id="receiptTotalTarget"></td></tr>
+            <tfoot>
+                <tr style="border-top: 2px solid #334155;">
+                    <td style="padding-top:15px; font-weight:800; color: #334155;">總計</td>
+                    <td style="text-align:right; padding-top:15px; font-weight:800;" id="receiptTotalBase"></td>
+                    <td style="text-align:right; padding-top:15px; color:#2563eb; font-weight:800;" id="receiptTotalTarget"></td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 
     <script>
         const ADMIN_EMAIL = 'jingsyuan@gmail.com';
-        // 更新幣別清單
         const CURRENCIES = {
             'TWD': '新台幣', 'JPY': '日圓', 'KRW': '韓元', 'USD': '美金', 
             'AUD': '澳幣', 'EUR': '歐元', 'CNY': '人民幣', 'HKD': '港幣', 
@@ -321,7 +332,6 @@
         let items = [];
         let onConfirmAction = null;
         let isProcessingScan = false;
-        // 預設改為 TWD 對 TWD
         let settings = JSON.parse(localStorage.getItem('exSettings')) || { base: 'TWD', target: 'TWD', rate: 1 };
         let html5QrCode = null;
 
@@ -366,24 +376,46 @@
             });
         }
 
-        // --- Logic ---
+        // --- Logic: Export (Fix 1: Add Currency Labels) ---
         async function getExportBlob(type) {
             const dateStr = new Date().toLocaleDateString().replace(/\//g, '-');
             const filename = `ShoppingList_${dateStr}`;
             
+            // 填寫收據內容與幣別標籤
             document.getElementById('receiptDate').textContent = new Date().toLocaleString();
             document.getElementById('receiptTotalBase').textContent = document.getElementById('dispTotal').textContent;
             document.getElementById('receiptTotalTarget').textContent = document.getElementById('dispConverted').textContent;
-            document.getElementById('receiptItems').innerHTML = items.map(i => `<tr><td style="padding:5px">${i.name}</td><td style="text-align:right">${i.price}</td><td style="text-align:right">${Math.round(i.price * settings.rate)}</td></tr>`).join('');
+            
+            // 更新表頭顯示幣別
+            document.getElementById('receiptThBase').textContent = `價格 (${settings.base})`;
+            document.getElementById('receiptThTarget').textContent = `約 (${settings.target})`;
+
+            document.getElementById('receiptItems').innerHTML = items.map(i => `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding:8px; color:#334155;">${i.name}</td>
+                    <td style="text-align:right; padding:8px; color:#334155;">${i.price}</td>
+                    <td style="text-align:right; padding:8px; color:#64748b;">${Math.round(i.price * settings.rate)}</td>
+                </tr>`).join('');
             
             const el = document.getElementById('exportReceipt');
 
             if (type === 'png') {
-                const canvas = await html2canvas(el, { scale: 2 });
+                // 使用 html2canvas
+                const canvas = await html2canvas(el, { scale: 2, useCORS: true });
                 return new Promise(resolve => canvas.toBlob(blob => resolve({ blob, filename: filename+'.png', mime: 'image/png' })));
             } else if (type === 'xlsx') {
-                const ws = XLSX.utils.json_to_sheet(items.map(i => ({ '品名': i.name, '價格': i.price, '約': Math.round(i.price * settings.rate) })));
-                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "清單");
+                // 製作 Excel 資料 (包含幣別)
+                const excelData = items.map(i => {
+                    let obj = {};
+                    obj['品名'] = i.name;
+                    obj[`價格 (${settings.base})`] = i.price;
+                    obj[`約 (${settings.target})`] = Math.round(i.price * settings.rate);
+                    return obj;
+                });
+                
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                const wb = XLSX.utils.book_new(); 
+                XLSX.utils.book_append_sheet(wb, ws, "清單");
                 const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                 return { blob: new Blob([wbout], { type: 'application/octet-stream' }), filename: filename+'.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
             } else if (type === 'pdf') {
@@ -424,8 +456,8 @@
             if (items.length === 0) return alert("清單是空的");
             const total = items.reduce((sum, i) => sum + (i.price||0), 0);
             let text = `🛒 購物清單 (${new Date().toLocaleDateString()})\n\n`;
-            items.forEach(i => text += `▫️ ${i.name}: ${i.price}\n`);
-            text += `\n💰 總計: ${total} ${settings.base}`;
+            items.forEach(i => text += `▫️ ${i.name}: ${i.price} ${settings.base}\n`);
+            text += `\n💰 總計: ${total} ${settings.base} (約 ${Math.round(total*settings.rate)} ${settings.target})`;
             if (navigator.share) navigator.share({ title: '購物清單', text: text }).catch(()=>{});
             else { navigator.clipboard.writeText(text); showToast("已複製文字"); }
         }
@@ -527,14 +559,12 @@
                 document.getElementById('inpName').value=''; document.getElementById('inpPrice').value=''; currentBarcode=null; document.getElementById('scanHint').classList.add('hidden'); showToast("已加入");
             };
 
-            // 幣別交換按鈕事件
             document.getElementById('btnSwapCurrency').onclick = () => {
                 const temp = settings.base;
                 settings.base = settings.target;
                 settings.target = temp;
                 localStorage.setItem('exSettings', JSON.stringify(settings));
                 updateSettingsUI();
-                // 交換後自動更新匯率
                 document.getElementById('btnFetchRate').click();
             };
 
@@ -545,7 +575,6 @@
             document.getElementById('inpRate').oninput = (e) => { settings.rate = parseFloat(e.target.value)||0; localStorage.setItem('exSettings', JSON.stringify(settings)); renderList(); };
             
             document.getElementById('btnFetchRate').onclick = async () => {
-                // 如果幣別相同，不需連網，直接設為 1
                 if (settings.base === settings.target) {
                     settings.rate = 1;
                     localStorage.setItem('exSettings', JSON.stringify(settings));
@@ -553,7 +582,6 @@
                     showToast("匯率重置為 1");
                     return;
                 }
-
                 const btn=document.getElementById('btnFetchRate'); btn.textContent="...";
                 try { 
                     const res=await fetch(`https://api.exchangerate-api.com/v4/latest/${settings.base}`); 
@@ -568,10 +596,22 @@
                 btn.textContent="線上更新";
             };
             
+            // --- Scanner Logic (Fix 2: Firefox Compatibility) ---
             document.getElementById('btnScan').onclick = () => { 
                 document.getElementById('modalScan').classList.remove('hidden'); 
+                
+                // 確保先清除舊的 instance
+                if(html5QrCode) { 
+                    try { html5QrCode.clear(); } catch(e){} 
+                }
+                
                 html5QrCode = new Html5Qrcode("reader");
-                html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async txt => {
+                
+                const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+                
+                // Firefox 在 Android 上有時會因為 aspect ratio 問題導致無法啟動
+                // 這裡嘗試標準啟動，若失敗則捕捉錯誤
+                html5QrCode.start({ facingMode: "environment" }, qrConfig, async txt => {
                     if(isProcessingScan) return;
                     isProcessingScan = true;
                     try { await html5QrCode.stop(); html5QrCode.clear(); } catch(e){}
@@ -593,8 +633,14 @@
                     document.getElementById('lblSource').textContent=src;
                     
                     setTimeout(() => { isProcessingScan = false; }, 1000);
-                }).catch(()=>{}); 
+                })
+                .catch(err => {
+                    console.error("Scanner Error:", err);
+                    alert("相機啟動失敗。\n若使用 Firefox，請確認網址為 HTTPS 開頭。\n錯誤訊息: " + err);
+                    document.getElementById('modalScan').classList.add('hidden');
+                });
             };
+            
             document.getElementById('btnCloseScan').onclick = () => { 
                 if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear()).catch(()=>{});
                 document.getElementById('modalScan').classList.add('hidden'); 
@@ -623,7 +669,6 @@
                 }
             });
             
-            // Prevent Enter newlines
             document.getElementById('listContainer').addEventListener('keydown', (e) => {
                 if (e.target.hasAttribute('contenteditable') && e.key === 'Enter') {
                     e.preventDefault(); e.target.blur();

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v22 (備份管理+UI優化)</title>
+    <title>購物計算機 v23 (API增強版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -612,11 +612,17 @@
             document.getElementById('btnScan').onclick = () => { 
                 document.getElementById('modalScan').classList.remove('hidden'); 
                 
-                if(html5QrCode) { try { html5QrCode.clear(); } catch(e){} }
+                // 確保先清除舊的 instance
+                if(html5QrCode) { 
+                    try { html5QrCode.clear(); } catch(e){} 
+                }
                 
                 html5QrCode = new Html5Qrcode("reader");
+                
                 const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
                 
+                // Firefox 在 Android 上有時會因為 aspect ratio 問題導致無法啟動
+                // 這裡嘗試標準啟動，若失敗則捕捉錯誤
                 html5QrCode.start({ facingMode: "environment" }, qrConfig, async txt => {
                     if(isProcessingScan) return;
                     isProcessingScan = true;
@@ -630,12 +636,36 @@
                     
                     let name="", src="新發現";
                     try {
+                        // 1. Check Firebase first
                         if(dbMode==='cloud') { const d=await firebase.firestore().collection('products').doc(txt).get(); if(d.exists){ name=d.data().name; src="資料庫"; } }
-                        if(!name) { const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${txt}.json`); const d=await r.json(); if(d.status===1) { name=d.product.product_name_zh||d.product.product_name; src="網路 API"; } }
+
+                        // 2. Check Open Food Facts if not found in Firebase
+                        if(!name) {
+                            const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${txt}.json`);
+                            const d=await r.json();
+                            if(d.status===1) {
+                                // 嘗試多個欄位抓取名稱
+                                const p = d.product;
+                                name = p.product_name_zh || p.product_name_en || p.product_name || p.generic_name || "";
+                                
+                                // 如果還是沒有名字，但有品牌
+                                if (!name && p.brands) name = p.brands + " (未知名稱)";
+                                
+                                // 只要 API 回傳 status:1，就算沒名字，也視為資料庫有此條碼（來源顯示網路 API）
+                                src="網路 API";
+                            }
+                        }
                     } catch(e){}
                     
+                    // 如果最終沒有名字，顯示預設文字
+                    if (!name) {
+                        name = `(未知品名) ${txt}`;
+                        // 如果是因為沒名字而顯示這行，保持 src 為新發現可能比較好，或者視為 API 有資料但無名
+                        // 這裡維持 src 邏輯，若上面 API 有回傳 status:1，src 就會是網路 API
+                    }
+                    
                     document.getElementById('inpName').value=name; 
-                    document.getElementById('inpName').focus(); 
+                    document.getElementById('inpName').focus(); // 自動聚焦方便修改
                     document.getElementById('lblSource').textContent=src;
                     
                     setTimeout(() => { isProcessingScan = false; }, 1000);

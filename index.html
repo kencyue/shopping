@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v21 (訪客保存優化版)</title>
+    <title>購物計算機 v22 (連線修復版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -336,16 +336,46 @@
             initCurrencySelects();
             updateSettingsUI();
             bindEvents();
+            
+            // 安全機制：若5秒未連上，自動轉本機
+            const timeoutId = setTimeout(() => {
+                if (document.getElementById('statusBadge').textContent.includes('初始化')) {
+                    activateLocalMode("連線逾時");
+                }
+            }, 5000);
+
             try {
                 firebase.initializeApp(firebaseConfig);
-                firebase.auth().onAuthStateChanged(user => {
-                    if (user) handleLoginSuccess(user);
-                    else firebase.auth().signInAnonymously();
+                const auth = firebase.auth();
+                
+                auth.onAuthStateChanged(user => {
+                    clearTimeout(timeoutId);
+                    if (user) {
+                        handleLoginSuccess(user);
+                    } else {
+                        // 嘗試匿名登入，若失敗（例如網域問題）則轉本機
+                        auth.signInAnonymously().catch(e => {
+                            console.error("Anonymous Sign-in Failed:", e);
+                            activateLocalMode("登入失敗");
+                        });
+                    }
                 });
             } catch (e) {
-                dbMode = 'local'; items = JSON.parse(localStorage.getItem('localItems')) || []; renderList();
+                clearTimeout(timeoutId);
+                console.error("Firebase Init Failed:", e);
+                activateLocalMode("設定錯誤");
             }
         })();
+
+        function activateLocalMode(reason) {
+            dbMode = 'local';
+            document.getElementById('statusBadge').textContent = `🟠 本機模式 (${reason})`;
+            document.getElementById('statusBadge').className = 'text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded opacity-80';
+            document.getElementById('userBadge').classList.add('hidden');
+            
+            items = JSON.parse(localStorage.getItem('localItems')) || [];
+            renderList();
+        }
 
         function handleLoginSuccess(user) {
             currentUser = user; dbMode = 'cloud';

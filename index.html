@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v14 (備份分享版)</title>
+    <title>購物計算機 v15 (全功能分享版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -13,7 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-    <!-- Firebase SDK (使用 Compat 版本以利單檔執行) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -22,7 +22,8 @@
         body { touch-action: manipulation; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         #reader video { object-fit: cover; border-radius: 12px; }
-        #exportReceipt { position: absolute; top: -9999px; left: -9999px; width: 500px; background: white; padding: 20px; color: #1e293b; }
+        /* 隱藏的收據樣式 (確保截圖清晰) */
+        #exportReceipt { position: fixed; top: -9999px; left: 0; width: 500px; background: white; padding: 20px; color: #1e293b; z-index: -1; }
         
         /* Toast Animation */
         @keyframes slideUp { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, -20px); opacity: 1; } }
@@ -50,7 +51,7 @@
                     <button id="btnDb" class="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg shadow-sm transition-colors" title="公共庫存">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><database cx="12" cy="12" r="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                     </button>
-                    <!-- Icon Updated -->
+                    <!-- Settings Icon Updated -->
                     <button id="btnSettings" class="p-2 bg-blue-700 hover:bg-blue-800 rounded-lg border border-blue-500/30 transition-colors" title="設定">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     </button>
@@ -134,7 +135,6 @@
                 <button onclick="document.getElementById('modalSettings').classList.add('hidden')" class="bg-white/20 hover:bg-white/30 p-1 rounded-full">✕</button>
             </div>
             <div class="p-5 space-y-4">
-                <!-- 幣別選擇 -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">消費幣別</label>
@@ -145,8 +145,6 @@
                         <select id="selTarget" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"></select>
                     </div>
                 </div>
-
-                <!-- 匯率輸入 -->
                 <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <label class="block text-xs font-bold text-slate-400 mb-1">當前匯率 (1 <span id="lblBaseSet">JPY</span> = ? <span id="lblTargetSet">TWD</span>)</label>
                     <div class="flex gap-2">
@@ -154,8 +152,6 @@
                         <button id="btnFetchRate" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold hover:bg-blue-200 transition-colors">線上更新</button>
                     </div>
                 </div>
-
-                <!-- 登入狀態 -->
                 <div class="pt-2 border-t border-slate-100">
                     <p class="text-xs text-slate-400 mb-2">帳號管理</p>
                     <div id="loginSection">
@@ -170,7 +166,6 @@
                         <button id="btnLogout" class="text-xs text-red-500 hover:underline mt-2">登出</button>
                     </div>
                 </div>
-
                 <button onclick="document.getElementById('modalSettings').classList.add('hidden')" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold mt-2">完成</button>
             </div>
         </div>
@@ -184,14 +179,9 @@
                     <h3 class="font-bold flex items-center gap-2">公共商品庫存</h3>
                     <button onclick="document.getElementById('modalDb').classList.add('hidden')" class="text-white/80 hover:text-white">✕</button>
                 </div>
-                <!-- 搜尋框 -->
                 <input type="text" id="inpDbSearch" placeholder="🔍 快速搜尋條碼或品名..." class="w-full px-3 py-2 text-sm text-slate-800 rounded-lg focus:outline-none" oninput="filterDbList(this.value)">
             </div>
-            
-            <div class="p-2 bg-indigo-50 text-indigo-800 text-xs font-bold text-center border-b border-indigo-100" id="adminNotice">
-                <!-- 權限提示文字 -->
-            </div>
-
+            <div class="p-2 bg-indigo-50 text-indigo-800 text-xs font-bold text-center border-b border-indigo-100" id="adminNotice"></div>
             <div class="p-4 overflow-y-auto flex-1 space-y-2" id="dbListContainer"></div>
         </div>
     </div>
@@ -203,26 +193,57 @@
         <div id="reader" class="w-full max-w-sm bg-black rounded-xl overflow-hidden border border-gray-700 shadow-2xl"></div>
     </div>
 
-    <!-- 4. 匯出/分享/備份 Modal -->
+    <!-- 4. 匯出/分享/備份 Modal (升級版) -->
     <div id="modalExport" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-sm shadow-xl flex flex-col max-h-[85vh]">
             <div class="p-5 pb-0">
                 <h3 class="font-bold mb-4 text-gray-800 text-lg">匯出與備份</h3>
                 
-                <div class="grid grid-cols-3 gap-2 mb-3">
-                    <button onclick="doExport('png')" class="p-3 border rounded-xl hover:bg-slate-50 text-slate-700 flex flex-col items-center text-xs font-bold gap-1"><span class="text-xl">🖼️</span> 圖片</button>
-                    <button onclick="doExport('xlsx')" class="p-3 border rounded-xl hover:bg-slate-50 text-slate-700 flex flex-col items-center text-xs font-bold gap-1"><span class="text-xl">📊</span> Excel</button>
-                    <button onclick="doExport('pdf')" class="p-3 border rounded-xl hover:bg-slate-50 text-slate-700 flex flex-col items-center text-xs font-bold gap-1"><span class="text-xl">📄</span> PDF</button>
+                <!-- 檔案格式選單 -->
+                <div class="space-y-3 mb-4">
+                    <!-- PNG -->
+                    <div class="flex items-center justify-between p-3 border rounded-xl hover:bg-slate-50">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🖼️</span>
+                            <span class="text-sm font-bold text-slate-700">圖片 (PNG)</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="doExport('png')" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold border hover:bg-slate-200">💾 儲存</button>
+                            <button onclick="doShareFile('png')" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-200">📤 分享</button>
+                        </div>
+                    </div>
+                    <!-- Excel -->
+                    <div class="flex items-center justify-between p-3 border rounded-xl hover:bg-slate-50">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">📊</span>
+                            <span class="text-sm font-bold text-slate-700">表格 (Excel)</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="doExport('xlsx')" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold border hover:bg-slate-200">💾 儲存</button>
+                            <button onclick="doShareFile('xlsx')" class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-bold hover:bg-green-200">📤 分享</button>
+                        </div>
+                    </div>
+                    <!-- PDF -->
+                    <div class="flex items-center justify-between p-3 border rounded-xl hover:bg-slate-50">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">📄</span>
+                            <span class="text-sm font-bold text-slate-700">文件 (PDF)</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="doExport('pdf')" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold border hover:bg-slate-200">💾 儲存</button>
+                            <button onclick="doShareFile('pdf')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-bold hover:bg-red-200">📤 分享</button>
+                        </div>
+                    </div>
                 </div>
                 
-                <button onclick="doShare()" class="w-full p-3 border rounded-xl hover:bg-blue-50 text-blue-700 font-bold flex items-center justify-center gap-2 mb-4">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                    分享文字清單
+                <button onclick="doShareText()" class="w-full p-3 border rounded-xl hover:bg-blue-50 text-blue-700 font-bold flex items-center justify-center gap-2 mb-4 text-sm">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                    僅複製/分享文字內容
                 </button>
 
                 <div class="border-t border-slate-100 my-2 pt-3">
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-bold text-slate-500">雲端備份 (按日期管理)</span>
+                        <span class="text-xs font-bold text-slate-500">雲端備份 (按日期)</span>
                         <button onclick="createBackup()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 font-bold flex items-center gap-1">
                             <span>+</span> 立即備份
                         </button>
@@ -230,7 +251,7 @@
                 </div>
             </div>
 
-            <!-- Backup List Scrollable Area -->
+            <!-- Backup List -->
             <div class="overflow-y-auto flex-1 px-5 pb-5 space-y-2" id="backupListContainer">
                 <div class="text-center py-4 text-xs text-slate-400">正在載入備份紀錄...</div>
             </div>
@@ -241,25 +262,20 @@
         </div>
     </div>
 
-    <!-- 5. 確認對話框 -->
+    <!-- 5. 確認與提示 UI -->
     <div id="modalConfirm" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
         <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600 mx-auto">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <h3 id="confirmTitle" class="text-xl font-bold text-slate-800 mb-2 text-center">確認刪除？</h3>
-            <p id="confirmMsg" class="text-sm text-slate-500 mb-6 text-center">此動作無法復原，請確認是否繼續。</p>
+            <h3 id="confirmTitle" class="text-xl font-bold text-slate-800 mb-2 text-center">確認？</h3>
+            <p id="confirmMsg" class="text-sm text-slate-500 mb-6 text-center">...</p>
             <div class="grid grid-cols-2 gap-3">
                 <button id="btnConfirmCancel" class="py-3 px-4 rounded-xl bg-slate-100 font-bold text-slate-600 hover:bg-slate-200">取消</button>
-                <button id="btnConfirmOk" class="py-3 px-4 rounded-xl bg-red-600 font-bold text-white shadow-lg shadow-red-200 hover:bg-red-700">確定執行</button>
+                <button id="btnConfirmOk" class="py-3 px-4 rounded-xl bg-red-600 font-bold text-white shadow-lg hover:bg-red-700">確定</button>
             </div>
         </div>
     </div>
-
-    <!-- Toast -->
     <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl z-[70] opacity-0 transition-opacity whitespace-nowrap"></div>
 
-    <!-- Hidden Receipt -->
+    <!-- Hidden Receipt Container -->
     <div id="exportReceipt">
         <div style="text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
             <h2 style="color: #2563eb; margin:0; font-size:24px;">購物清單</h2>
@@ -273,14 +289,9 @@
     </div>
 
     <script>
-        // --- 核心變數與設定 ---
         const ADMIN_EMAIL = 'jingsyuan@gmail.com';
-        const CURRENCIES = {
-            'TWD': '新台幣 (TWD)', 'JPY': '日圓 (JPY)', 'USD': '美金 (USD)', 'EUR': '歐元 (EUR)',
-            'KRW': '韓元 (KRW)', 'CNY': '人民幣 (CNY)', 'HKD': '港幣 (HKD)', 'THB': '泰銖 (THB)',
-            'SGD': '新幣 (SGD)', 'MYR': '馬幣 (MYR)'
-        };
-
+        const CURRENCIES = { 'TWD': '新台幣', 'JPY': '日圓', 'USD': '美金', 'EUR': '歐元', 'KRW': '韓元', 'CNY': '人民幣', 'HKD': '港幣', 'THB': '泰銖', 'SGD': '新幣', 'MYR': '馬幣' };
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBCpjQ9W336gYM8fPtZPcy2I5tceEQrsBA",
             authDomain: "shopping-ceef3.firebaseapp.com",
@@ -298,469 +309,259 @@
         let onConfirmAction = null;
         let settings = JSON.parse(localStorage.getItem('exSettings')) || { base: 'JPY', target: 'TWD', rate: 0.215 };
 
-        // --- 初始化 ---
+        // --- Init ---
         (async function init() {
             initCurrencySelects();
             updateSettingsUI();
             bindEvents();
-
             try {
                 firebase.initializeApp(firebaseConfig);
-                const auth = firebase.auth();
-                auth.onAuthStateChanged(user => {
-                    if (user) {
-                        handleLoginSuccess(user);
-                    } else {
-                        auth.signInAnonymously().catch(e => console.error(e));
-                    }
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) handleLoginSuccess(user);
+                    else firebase.auth().signInAnonymously();
                 });
             } catch (e) {
-                console.log("Local Mode Fallback");
-                items = JSON.parse(localStorage.getItem('localItems')) || [];
-                renderList();
+                dbMode = 'local'; items = JSON.parse(localStorage.getItem('localItems')) || []; renderList();
             }
         })();
 
         function handleLoginSuccess(user) {
-            currentUser = user;
-            dbMode = 'cloud';
+            currentUser = user; dbMode = 'cloud';
+            document.getElementById('statusBadge').textContent = '🟢 雲端連線';
+            document.getElementById('statusBadge').className = 'text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded opacity-80';
+            document.getElementById('userBadge').classList.remove('hidden');
             
-            updateStatus('🟢 雲端同步中', 'bg-green-100 text-green-700');
+            const isAdmin = user.email === ADMIN_EMAIL;
             const badge = document.getElementById('userBadge');
-            badge.classList.remove('hidden');
-            
-            const loginSec = document.getElementById('loginSection');
-            const infoSec = document.getElementById('userInfoSection');
-            const emailDisp = document.getElementById('userEmailDisplay');
+            if (isAdmin) { badge.textContent = "管理者"; badge.className = "text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold border border-red-200"; }
+            else if (user.isAnonymous) { badge.textContent = "訪客"; badge.className = "text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded"; }
+            else { badge.textContent = "已登入"; badge.className = "text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded"; }
 
-            if (user.email === ADMIN_EMAIL) {
-                badge.textContent = "管理者";
-                badge.className = "text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold border border-red-200";
-                loginSec.classList.add('hidden');
-                infoSec.classList.remove('hidden');
-                emailDisp.textContent = user.email;
-            } else if (user.isAnonymous) {
-                badge.textContent = "訪客";
-                badge.className = "text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded";
-                loginSec.classList.remove('hidden');
-                infoSec.classList.add('hidden');
-            } else {
-                badge.textContent = "已登入";
-                badge.className = "text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded";
-                loginSec.classList.add('hidden');
-                infoSec.classList.remove('hidden');
-                emailDisp.textContent = user.email;
-            }
+            document.getElementById('loginSection').classList.toggle('hidden', !user.isAnonymous);
+            document.getElementById('userInfoSection').classList.toggle('hidden', user.isAnonymous);
+            if(!user.isAnonymous) document.getElementById('userEmailDisplay').textContent = user.email;
 
-            // 監聽個人清單
-            firebase.firestore().collection('users').doc(user.uid).collection('shopping_list')
-                .orderBy('timestamp', 'desc')
-                .onSnapshot(snap => {
-                    items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    renderList();
-                });
-        }
-
-        function initCurrencySelects() {
-            const opts = Object.entries(CURRENCIES).map(([code, name]) => `<option value="${code}">${name}</option>`).join('');
-            document.getElementById('selBase').innerHTML = opts;
-            document.getElementById('selTarget').innerHTML = opts;
-        }
-
-        function updateSettingsUI() {
-            document.getElementById('selBase').value = settings.base;
-            document.getElementById('selTarget').value = settings.target;
-            document.getElementById('inpRate').value = settings.rate;
-            document.getElementById('lblBase').textContent = settings.base;
-            document.getElementById('lblTarget').textContent = settings.target;
-            document.getElementById('lblBaseSet').textContent = settings.base;
-            document.getElementById('lblTargetSet').textContent = settings.target;
-            document.getElementById('inpPrice').placeholder = `價格 (${settings.base})`;
-            renderList();
-        }
-
-        function updateStatus(text, classes) {
-            const el = document.getElementById('statusBadge');
-            el.textContent = text;
-            el.className = `text-[10px] px-1.5 py-0.5 rounded opacity-80 ${classes}`;
-        }
-
-        function showToast(msg) {
-            const el = document.getElementById('toast');
-            el.textContent = msg;
-            el.classList.add('toast-show');
-            setTimeout(() => el.classList.remove('toast-show'), 2500);
-        }
-
-        function showConfirm(title, msg, callback) {
-            document.getElementById('confirmTitle').textContent = title;
-            document.getElementById('confirmMsg').textContent = msg;
-            document.getElementById('modalConfirm').classList.remove('hidden');
-            onConfirmAction = callback;
-        }
-
-        function bindEvents() {
-            document.getElementById('btnSettings').onclick = () => document.getElementById('modalSettings').classList.remove('hidden');
-            document.getElementById('btnExport').onclick = () => {
-                document.getElementById('modalExport').classList.remove('hidden');
-                if (dbMode === 'cloud') loadBackups(); // Load backups when opening modal
-            };
-            document.getElementById('btnDb').onclick = openDbManager;
-            document.getElementById('btnConfirmCancel').onclick = () => { document.getElementById('modalConfirm').classList.add('hidden'); onConfirmAction = null; };
-            document.getElementById('btnConfirmOk').onclick = () => { if(onConfirmAction) onConfirmAction(); document.getElementById('modalConfirm').classList.add('hidden'); onConfirmAction = null; };
-            
-            // Login/Logout
-            document.getElementById('btnLoginGoogle').onclick = async () => {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                try { await firebase.auth().signInWithPopup(provider); showToast("登入成功！"); } 
-                catch(e) { alert("登入失敗: " + e.message); }
-            };
-            document.getElementById('btnLogout').onclick = () => firebase.auth().signOut().then(()=>window.location.reload());
-
-            // Clear
-            document.getElementById('btnClear').onclick = () => {
-                showConfirm("清空購物清單", "確定要刪除所有項目嗎？", async () => {
-                    if (dbMode === 'cloud') {
-                        const batch = firebase.firestore().batch();
-                        const ref = firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list');
-                        const snap = await ref.get();
-                        snap.docs.forEach(doc => batch.delete(doc.ref));
-                        await batch.commit();
-                    } else {
-                        items = [];
-                        saveLocal();
-                        renderList();
-                    }
-                    showToast("已清空");
-                });
-            };
-
-            // Add Item
-            document.getElementById('formItem').onsubmit = async (e) => {
-                e.preventDefault();
-                const name = document.getElementById('inpName').value.trim();
-                const price = parseFloat(document.getElementById('inpPrice').value);
-                if (!price && price !== 0) return;
-
-                const newItem = {
-                    name: name || '(未命名)',
-                    price: price,
-                    barcode: currentBarcode,
-                    timestamp: Date.now()
-                };
-
-                if (dbMode === 'cloud') {
-                    // 私人清單
-                    await firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list').add({
-                        ...newItem,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    // 公共庫存
-                    if (currentBarcode && name) {
-                        firebase.firestore().collection('products').doc(currentBarcode).set({
-                            name: name,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            contributor: currentUser.uid
-                        }, { merge: true });
-                    }
-                } else {
-                    newItem.id = Date.now().toString();
-                    items.unshift(newItem);
-                    saveLocal();
-                    renderList();
-                }
-
-                document.getElementById('inpName').value = '';
-                document.getElementById('inpPrice').value = '';
-                clearScan();
-                showToast("已加入");
-            };
-
-            // Settings
-            ['selBase', 'selTarget'].forEach(id => {
-                document.getElementById(id).onchange = () => {
-                    settings.base = document.getElementById('selBase').value;
-                    settings.target = document.getElementById('selTarget').value;
-                    saveSettings();
-                    updateSettingsUI();
-                    document.getElementById('btnFetchRate').click();
-                };
+            firebase.firestore().collection('users').doc(user.uid).collection('shopping_list').orderBy('timestamp', 'desc').onSnapshot(snap => {
+                items = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderList();
             });
-            document.getElementById('inpRate').oninput = (e) => { settings.rate = parseFloat(e.target.value) || 0; saveSettings(); renderList(); };
-            document.getElementById('btnFetchRate').onclick = async () => {
-                const btn = document.getElementById('btnFetchRate'); btn.textContent = "...";
-                try {
-                    const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${settings.base}`);
-                    const data = await res.json();
-                    if (data.rates[settings.target]) {
-                        settings.rate = data.rates[settings.target];
-                        saveSettings(); updateSettingsUI(); showToast("匯率更新成功");
-                    }
-                } catch(e) { showToast("連線失敗"); }
-                btn.textContent = "線上更新";
-            };
-
-            // Scanner
-            document.getElementById('btnScan').onclick = startScanner;
-            document.getElementById('btnCloseScan').onclick = stopScanner;
-            document.getElementById('btnClearScan').onclick = clearScan;
         }
 
-        function renderList() {
-            const list = document.getElementById('listContainer');
-            const total = items.reduce((sum, i) => sum + (i.price || 0), 0);
-            document.getElementById('dispTotal').textContent = total.toLocaleString();
-            document.getElementById('dispConverted').textContent = '$' + Math.round(total * settings.rate).toLocaleString();
-            document.getElementById('dispRate').textContent = settings.rate;
-
-            if (items.length === 0) {
-                list.innerHTML = '';
-                document.getElementById('emptyState').style.display = 'flex';
-                return;
-            }
-            document.getElementById('emptyState').style.display = 'none';
-
-            list.innerHTML = items.map(item => `
-                <div class="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-100 shadow-sm animate-fade-in group">
-                    <div class="flex items-center gap-4 flex-1 min-w-0">
-                        <div class="flex flex-col items-end min-w-[80px]">
-                            <div class="text-lg font-bold text-slate-800 tracking-tight">${item.price.toLocaleString()}</div>
-                            <div class="text-[11px] text-slate-400 font-medium">≈ ${Math.round(item.price * settings.rate).toLocaleString()}</div>
-                        </div>
-                        <div class="h-8 w-px bg-slate-100"></div>
-                        <div class="flex-1 overflow-hidden">
-                            <div class="text-sm font-medium text-slate-700 truncate">${item.name}</div>
-                            ${item.barcode ? `<div class="text-[10px] font-mono text-slate-400 bg-slate-50 inline-block px-1.5 py-0.5 rounded border border-slate-100 mt-0.5">${item.barcode}</div>` : ''}
-                        </div>
-                    </div>
-                    <button onclick="deleteItem('${item.id}')" class="ml-2 text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">✕</button>
-                </div>
-            `).join('');
-        }
-
-        window.deleteItem = (id) => {
-            showConfirm("刪除項目", "確定要移除嗎？", async () => {
-                if (dbMode === 'cloud') {
-                    await firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list').doc(String(id)).delete();
-                } else {
-                    items = items.filter(i => String(i.id) !== String(id));
-                    saveLocal();
-                    renderList();
-                }
-                showToast("已刪除");
-            });
-        };
-
-        // --- 備份功能 ---
-        async function createBackup() {
-            if (dbMode !== 'cloud') return alert("需登入才能使用雲端備份");
-            if (items.length === 0) return alert("清單是空的，無法備份");
-
-            const dateStr = new Date().toISOString(); // Using ISO string for ID
-            const displayDate = new Date().toLocaleString();
+        // --- Logic ---
+        async function getExportBlob(type) {
+            const dateStr = new Date().toLocaleDateString().replace(/\//g, '-');
+            const filename = `ShoppingList_${dateStr}`;
             
-            try {
-                // Save current list as a JSON string to a document in 'backups' subcollection
-                await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups').doc(dateStr).set({
-                    items: items,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    displayName: displayDate
-                });
-                showToast("備份成功");
-                loadBackups();
-            } catch (e) {
-                console.error(e);
-                alert("備份失敗: " + e.message);
-            }
-        }
-
-        async function loadBackups() {
-            if (dbMode !== 'cloud') {
-                document.getElementById('backupListContainer').innerHTML = '<div class="text-center py-4 text-xs text-slate-400">請先登入以檢視備份</div>';
-                return;
-            }
-
-            const container = document.getElementById('backupListContainer');
-            container.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">載入中...</div>';
-
-            try {
-                const snap = await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups')
-                    .orderBy('createdAt', 'desc').limit(10).get();
-
-                if (snap.empty) {
-                    container.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">尚無備份紀錄</div>';
-                    return;
-                }
-
-                container.innerHTML = snap.docs.map(doc => {
-                    const data = doc.data();
-                    const count = data.items ? data.items.length : 0;
-                    // encode JSON to pass to function (simple approach for small data)
-                    // Better approach: fetch on click. Let's fetch on click to be safe.
-                    return `
-                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <div>
-                            <div class="text-sm font-bold text-slate-700">${data.displayName || '未命名備份'}</div>
-                            <div class="text-[10px] text-slate-400">${count} 個項目</div>
-                        </div>
-                        <button onclick="restoreBackup('${doc.id}')" class="text-xs bg-white border border-slate-200 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-50 font-bold">還原</button>
-                    </div>`;
-                }).join('');
-            } catch (e) {
-                container.innerHTML = '<div class="text-center py-4 text-xs text-red-400">載入失敗</div>';
-            }
-        }
-
-        window.restoreBackup = (docId) => {
-            showConfirm("還原備份", "這將覆蓋您當前的購物清單，確定嗎？", async () => {
-                try {
-                    const doc = await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups').doc(docId).get();
-                    if (!doc.exists) return alert("找不到備份檔案");
-                    
-                    const backupData = doc.data().items || [];
-                    
-                    // Clear current list first
-                    const batch = firebase.firestore().batch();
-                    const listRef = firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list');
-                    const currentSnap = await listRef.get();
-                    currentSnap.docs.forEach(d => batch.delete(d.ref));
-                    
-                    // Add backup items
-                    backupData.forEach(item => {
-                        const newDocRef = listRef.doc(); // new ID
-                        batch.set(newDocRef, item);
-                    });
-                    
-                    await batch.commit();
-                    showToast("還原成功！");
-                    document.getElementById('modalExport').classList.add('hidden');
-                } catch (e) {
-                    alert("還原失敗: " + e.message);
-                }
-            });
-        };
-
-        // --- 分享功能 ---
-        window.doShare = () => {
-            if (items.length === 0) return alert("清單是空的");
-            
-            const total = items.reduce((sum, i) => sum + (i.price || 0), 0);
-            const totalConv = Math.round(total * settings.rate);
-            
-            let text = `🛒 我的購物清單 (${new Date().toLocaleDateString()})\n\n`;
-            items.forEach(i => {
-                text += `▫️ ${i.name}: ${i.price} (約${Math.round(i.price * settings.rate)})\n`;
-            });
-            text += `\n💰 總計: ${total} ${settings.base} (約 ${totalConv} ${settings.target})`;
-
-            if (navigator.share) {
-                navigator.share({
-                    title: '購物清單',
-                    text: text
-                }).catch(console.error);
-            } else {
-                // Fallback: Copy to clipboard
-                navigator.clipboard.writeText(text).then(() => showToast("已複製文字到剪貼簿"));
-            }
-        };
-
-        // --- 搜尋功能 ---
-        window.filterDbList = (val) => {
-            const term = val.toLowerCase();
-            const list = document.getElementById('dbListContainer');
-            const rows = list.querySelectorAll('div.flex'); // selecting the rows
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(term) ? 'flex' : 'none';
-            });
-        };
-
-        async function openDbManager() {
-            const modal = document.getElementById('modalDb');
-            const container = document.getElementById('dbListContainer');
-            const notice = document.getElementById('adminNotice');
-            modal.classList.remove('hidden');
-
-            if (dbMode !== 'cloud') { container.innerHTML = '<div class="text-center py-10 text-slate-400">本機模式無法連線</div>'; return; }
-
-            const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
-            notice.textContent = isAdmin ? "👑 管理員：可刪除條碼" : "👀 訪客：僅能檢視";
-            
-            container.innerHTML = '<div class="text-center py-10 text-slate-400">載入中...</div>';
-
-            try {
-                const snap = await firebase.firestore().collection('products').orderBy('updatedAt', 'desc').limit(100).get();
-                if (snap.empty) { container.innerHTML = '<div class="text-center py-10 text-slate-400">庫存是空的</div>'; return; }
-
-                container.innerHTML = snap.docs.map(doc => {
-                    const data = doc.data();
-                    const deleteBtn = isAdmin 
-                        ? `<button onclick="deletePublicBarcode('${doc.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded text-xs border border-red-200">刪除</button>` 
-                        : `<span class="text-[10px] text-slate-300 px-2">唯讀</span>`;
-
-                    return `
-                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <div class="overflow-hidden mr-3">
-                            <div class="font-bold text-sm text-slate-700 truncate">${data.name}</div>
-                            <div class="text-[10px] font-mono text-indigo-400 break-all">${doc.id}</div>
-                        </div>
-                        ${deleteBtn}
-                    </div>`;
-                }).join('');
-            } catch(e) { container.innerHTML = '<div class="text-center py-10 text-red-400">載入失敗</div>'; }
-        }
-
-        window.deletePublicBarcode = (id) => {
-            showConfirm("刪除公共條碼", "這會影響所有使用者，確定嗎？", async () => {
-                if (currentUser && currentUser.email === ADMIN_EMAIL) {
-                    await firebase.firestore().collection('products').doc(id).delete();
-                    openDbManager();
-                    showToast("條碼已刪除");
-                }
-            });
-        };
-
-        let html5QrCode;
-        function startScanner() { document.getElementById('modalScan').classList.remove('hidden'); html5QrCode = new Html5Qrcode("reader"); html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess).catch(()=>{}); }
-        function stopScanner() { if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear()); document.getElementById('modalScan').classList.add('hidden'); }
-        async function onScanSuccess(decodedText) {
-            stopScanner();
-            currentBarcode = decodedText;
-            const nameInp = document.getElementById('inpName');
-            nameInp.value = "查詢中..."; nameInp.disabled = true;
-            document.getElementById('scanHint').classList.remove('hidden');
-            let foundName = ""; let source = "新發現";
-            try {
-                if (dbMode === 'cloud') {
-                    const doc = await firebase.firestore().collection('products').doc(decodedText).get();
-                    if(doc.exists) { foundName = doc.data().name; source = "資料庫"; }
-                }
-                if (!foundName) {
-                    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
-                    const data = await res.json();
-                    if (data.status === 1) { foundName = data.product.product_name_zh || data.product.product_name || ""; source = "網路 API"; }
-                }
-            } catch(e) {}
-            nameInp.value = foundName; nameInp.disabled = false; nameInp.focus();
-            document.getElementById('lblSource').textContent = source;
-            showToast(foundName ? "已找到資料" : "未找到，請輸入");
-        }
-        function clearScan() { currentBarcode = null; document.getElementById('scanHint').classList.add('hidden'); document.getElementById('inpName').value = ''; }
-
-        window.doExport = async (type) => {
-            document.getElementById('modalExport').classList.add('hidden');
             document.getElementById('receiptDate').textContent = new Date().toLocaleString();
             document.getElementById('receiptTotalBase').textContent = document.getElementById('dispTotal').textContent;
             document.getElementById('receiptTotalTarget').textContent = document.getElementById('dispConverted').textContent;
             document.getElementById('receiptItems').innerHTML = items.map(i => `<tr><td style="padding:5px">${i.name}</td><td style="text-align:right">${i.price}</td><td style="text-align:right">${Math.round(i.price * settings.rate)}</td></tr>`).join('');
-            const filename = `ShoppingList_${Date.now()}`;
-            const element = document.getElementById('exportReceipt');
-            if (type === 'png') { const canvas = await html2canvas(element, { scale: 2 }); const a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = filename + '.png'; a.click(); }
-            else if (type === 'xlsx') { const ws = XLSX.utils.json_to_sheet(items.map(i => ({ '品名': i.name, '價格': i.price, '約': Math.round(i.price * settings.rate) }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "清單"); XLSX.writeFile(wb, filename + '.xlsx'); }
-            else if (type === 'pdf') { const canvas = await html2canvas(element, { scale: 2 }); const pdf = new window.jspdf.jsPDF(); const img = canvas.toDataURL('image/png'); const props = pdf.getImageProperties(img); const h = (props.height * pdf.internal.pageSize.getWidth()) / props.width; pdf.addImage(img, 'PNG', 0, 10, pdf.internal.pageSize.getWidth(), h); pdf.save(filename + '.pdf'); }
+            
+            const el = document.getElementById('exportReceipt');
+
+            if (type === 'png') {
+                const canvas = await html2canvas(el, { scale: 2 });
+                return new Promise(resolve => canvas.toBlob(blob => resolve({ blob, filename: filename+'.png', mime: 'image/png' })));
+            } else if (type === 'xlsx') {
+                const ws = XLSX.utils.json_to_sheet(items.map(i => ({ '品名': i.name, '價格': i.price, '約': Math.round(i.price * settings.rate) })));
+                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "清單");
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                return { blob: new Blob([wbout], { type: 'application/octet-stream' }), filename: filename+'.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+            } else if (type === 'pdf') {
+                const canvas = await html2canvas(el, { scale: 2 });
+                const pdf = new window.jspdf.jsPDF();
+                const img = canvas.toDataURL('image/png');
+                const props = pdf.getImageProperties(img);
+                const h = (props.height * pdf.internal.pageSize.getWidth()) / props.width;
+                pdf.addImage(img, 'PNG', 0, 10, pdf.internal.pageSize.getWidth(), h);
+                return { blob: pdf.output('blob'), filename: filename+'.pdf', mime: 'application/pdf' };
+            }
+        }
+
+        async function doExport(type) {
+            try {
+                const { blob, filename } = await getExportBlob(type);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            } catch(e) { alert("匯出失敗: " + e.message); }
+        }
+
+        async function doShareFile(type) {
+            try {
+                const { blob, filename, mime } = await getExportBlob(type);
+                const file = new File([blob], filename, { type: mime });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: '購物清單' });
+                } else {
+                    alert("您的瀏覽器不支援直接分享此格式，已自動下載。");
+                    doExport(type);
+                }
+            } catch(e) { alert("分享失敗 (可能是瀏覽器限制): " + e.message); }
+        }
+
+        function doShareText() {
+            if (items.length === 0) return alert("清單是空的");
+            const total = items.reduce((sum, i) => sum + (i.price||0), 0);
+            let text = `🛒 購物清單 (${new Date().toLocaleDateString()})\n\n`;
+            items.forEach(i => text += `▫️ ${i.name}: ${i.price}\n`);
+            text += `\n💰 總計: ${total} ${settings.base}`;
+            if (navigator.share) navigator.share({ title: '購物清單', text: text }).catch(()=>{});
+            else { navigator.clipboard.writeText(text); showToast("已複製文字"); }
+        }
+
+        // --- 備份 ---
+        async function createBackup() {
+            if (dbMode !== 'cloud') return alert("需登入才能使用");
+            if (items.length === 0) return alert("無資料可備份");
+            const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+            try {
+                await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups').doc(dateStr).set({
+                    items: items, createdAt: firebase.firestore.FieldValue.serverTimestamp(), displayName: new Date().toLocaleString()
+                });
+                showToast("備份成功"); loadBackups();
+            } catch(e) { alert("備份失敗 (請檢查規則): " + e.message); }
+        }
+
+        async function loadBackups() {
+            if (dbMode !== 'cloud') return;
+            const container = document.getElementById('backupListContainer');
+            container.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">載入中...</div>';
+            try {
+                const snap = await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups').orderBy('createdAt', 'desc').limit(10).get();
+                if (snap.empty) { container.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">尚無備份</div>'; return; }
+                container.innerHTML = snap.docs.map(doc => {
+                    const data = doc.data();
+                    return `<div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div><div class="text-sm font-bold text-slate-700">${data.displayName}</div><div class="text-[10px] text-slate-400">${(data.items||[]).length} 項目</div></div>
+                        <button onclick="restoreBackup('${doc.id}')" class="text-xs bg-white border border-slate-200 text-blue-600 px-3 py-1.5 rounded font-bold">還原</button>
+                    </div>`;
+                }).join('');
+            } catch(e) { container.innerHTML = '<div class="text-center py-4 text-xs text-red-400">載入失敗</div>'; }
+        }
+
+        window.restoreBackup = (id) => {
+            showConfirm("還原", "這將覆蓋當前清單，確定？", async () => {
+                try {
+                    const doc = await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups').doc(id).get();
+                    if(!doc.exists) return;
+                    const data = doc.data().items || [];
+                    const batch = firebase.firestore().batch();
+                    const ref = firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list');
+                    const snap = await ref.get();
+                    snap.docs.forEach(d => batch.delete(d.ref));
+                    data.forEach(i => batch.set(ref.doc(), i));
+                    await batch.commit();
+                    showToast("還原成功");
+                    document.getElementById('modalExport').classList.add('hidden');
+                } catch(e) { alert("還原失敗"); }
+            });
         };
-        function saveLocal() { localStorage.setItem('localItems', JSON.stringify(items)); }
-        function saveSettings() { localStorage.setItem('exSettings', JSON.stringify(settings)); }
+
+        // --- Misc ---
+        function initCurrencySelects() {
+            const opts = Object.entries(CURRENCIES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+            document.getElementById('selBase').innerHTML = opts; document.getElementById('selTarget').innerHTML = opts;
+        }
+        function updateSettingsUI() {
+            document.getElementById('selBase').value = settings.base; document.getElementById('selTarget').value = settings.target;
+            document.getElementById('inpRate').value = settings.rate;
+            document.getElementById('lblBase').textContent = settings.base; document.getElementById('lblTarget').textContent = settings.target;
+            document.getElementById('lblBaseSet').textContent = settings.base; document.getElementById('lblTargetSet').textContent = settings.target;
+            document.getElementById('inpPrice').placeholder = `價格 (${settings.base})`;
+            renderList();
+        }
+        function showToast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('toast-show'); setTimeout(() => el.classList.remove('toast-show'), 2500); }
+        function showConfirm(t, m, cb) { document.getElementById('confirmTitle').textContent = t; document.getElementById('confirmMsg').textContent = m; document.getElementById('modalConfirm').classList.remove('hidden'); onConfirmAction = cb; }
+        
+        function bindEvents() {
+            document.getElementById('btnSettings').onclick = () => document.getElementById('modalSettings').classList.remove('hidden');
+            document.getElementById('btnExport').onclick = () => { document.getElementById('modalExport').classList.remove('hidden'); if(dbMode==='cloud') loadBackups(); };
+            document.getElementById('btnDb').onclick = openDbManager;
+            document.getElementById('btnConfirmCancel').onclick = () => { document.getElementById('modalConfirm').classList.add('hidden'); onConfirmAction = null; };
+            document.getElementById('btnConfirmOk').onclick = () => { if(onConfirmAction) onConfirmAction(); document.getElementById('modalConfirm').classList.add('hidden'); onConfirmAction = null; };
+            document.getElementById('btnLoginGoogle').onclick = async () => { try { await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()); showToast("登入成功"); } catch(e) { alert("登入失敗: "+e.message); }};
+            document.getElementById('btnLogout').onclick = () => firebase.auth().signOut().then(()=>window.location.reload());
+            
+            document.getElementById('btnClear').onclick = () => showConfirm("清空", "確定刪除所有項目？", async () => {
+                if(dbMode==='cloud') { const b = firebase.firestore().batch(); const r = firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list'); const s = await r.get(); s.docs.forEach(d=>b.delete(d.ref)); await b.commit(); }
+                else { items=[]; localStorage.setItem('localItems', '[]'); renderList(); }
+                showToast("已清空");
+            });
+
+            document.getElementById('formItem').onsubmit = async (e) => {
+                e.preventDefault();
+                const n = document.getElementById('inpName').value.trim(); const p = parseFloat(document.getElementById('inpPrice').value);
+                if(!p && p!==0) return;
+                const item = { name: n||'(未命名)', price: p, barcode: currentBarcode, timestamp: Date.now() };
+                if(dbMode==='cloud') {
+                    await firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list').add({ ...item, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                    if(currentBarcode && n) firebase.firestore().collection('products').doc(currentBarcode).set({ name: n, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), contributor: currentUser.uid }, {merge:true});
+                } else { item.id = Date.now().toString(); items.unshift(item); localStorage.setItem('localItems', JSON.stringify(items)); renderList(); }
+                document.getElementById('inpName').value=''; document.getElementById('inpPrice').value=''; currentBarcode=null; document.getElementById('scanHint').classList.add('hidden'); showToast("已加入");
+            };
+
+            ['selBase', 'selTarget'].forEach(id => document.getElementById(id).onchange = () => {
+                settings.base = document.getElementById('selBase').value; settings.target = document.getElementById('selTarget').value;
+                localStorage.setItem('exSettings', JSON.stringify(settings)); updateSettingsUI(); document.getElementById('btnFetchRate').click();
+            });
+            document.getElementById('inpRate').oninput = (e) => { settings.rate = parseFloat(e.target.value)||0; localStorage.setItem('exSettings', JSON.stringify(settings)); renderList(); };
+            document.getElementById('btnFetchRate').onclick = async () => {
+                const btn=document.getElementById('btnFetchRate'); btn.textContent="...";
+                try { const res=await fetch(`https://api.exchangerate-api.com/v4/latest/${settings.base}`); const d=await res.json(); if(d.rates[settings.target]){ settings.rate=d.rates[settings.target]; localStorage.setItem('exSettings', JSON.stringify(settings)); updateSettingsUI(); showToast("更新成功"); } } catch(e){ showToast("連線失敗"); } btn.textContent="線上更新";
+            };
+            document.getElementById('btnScan').onclick = () => { document.getElementById('modalScan').classList.remove('hidden'); new Html5Qrcode("reader").start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async txt => {
+                currentBarcode = txt; document.getElementById('modalScan').classList.add('hidden');
+                document.getElementById('inpName').value="查詢中..."; document.getElementById('scanHint').classList.remove('hidden'); document.getElementById('lblSource').textContent="...";
+                let name="", src="新發現";
+                try {
+                    if(dbMode==='cloud') { const d=await firebase.firestore().collection('products').doc(txt).get(); if(d.exists){ name=d.data().name; src="資料庫"; } }
+                    if(!name) { const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${txt}.json`); const d=await r.json(); if(d.status===1) { name=d.product.product_name_zh||d.product.product_name; src="網路 API"; } }
+                } catch(e){}
+                document.getElementById('inpName').value=name; document.getElementById('inpName').focus(); document.getElementById('lblSource').textContent=src;
+            }).catch(()=>{}); };
+            document.getElementById('btnCloseScan').onclick = () => document.getElementById('modalScan').classList.add('hidden');
+            document.getElementById('btnClearScan').onclick = () => { currentBarcode=null; document.getElementById('scanHint').classList.add('hidden'); document.getElementById('inpName').value=''; };
+        }
+
+        window.deleteItem = (id) => showConfirm("刪除", "確定移除？", async () => {
+            if(dbMode==='cloud') await firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list').doc(String(id)).delete();
+            else { items=items.filter(i=>String(i.id)!==String(id)); localStorage.setItem('localItems', JSON.stringify(items)); renderList(); }
+            showToast("已刪除");
+        });
+
+        window.filterDbList = (v) => { const term=v.toLowerCase(); document.querySelectorAll('#dbListContainer > div').forEach(r => r.style.display = r.innerText.toLowerCase().includes(term)?'flex':'none'); };
+        
+        async function openDbManager() {
+            document.getElementById('modalDb').classList.remove('hidden');
+            if(dbMode!=='cloud') return document.getElementById('dbListContainer').innerHTML='<div class="text-center py-10 text-slate-400">需連線</div>';
+            const isAdmin = currentUser&&currentUser.email===ADMIN_EMAIL;
+            document.getElementById('adminNotice').textContent = isAdmin ? "👑 管理員模式" : "👀 訪客模式 (唯讀)";
+            document.getElementById('dbListContainer').innerHTML='<div class="text-center py-10 text-slate-400">載入中...</div>';
+            try {
+                const snap = await firebase.firestore().collection('products').orderBy('updatedAt', 'desc').limit(100).get();
+                document.getElementById('dbListContainer').innerHTML = snap.empty ? '<div class="text-center py-10 text-slate-400">空</div>' : snap.docs.map(d => `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 mb-2">
+                        <div class="overflow-hidden mr-3"><div class="font-bold text-sm text-slate-700 truncate">${d.data().name}</div><div class="text-[10px] font-mono text-indigo-400">${d.id}</div></div>
+                        ${isAdmin ? `<button onclick="delPub('${d.id}')" class="text-red-500 text-xs border border-red-200 p-1 rounded">刪</button>` : ''}
+                    </div>`).join('');
+            } catch(e) { document.getElementById('dbListContainer').innerHTML='<div class="text-center text-red-400">失敗</div>'; }
+        }
+        window.delPub = (id) => showConfirm("刪除", "確定刪除此公共條碼？", async () => { await firebase.firestore().collection('products').doc(id).delete(); openDbManager(); showToast("已刪除"); });
+        function renderList() {
+            const total = items.reduce((s,i)=>s+(i.price||0),0);
+            document.getElementById('dispTotal').textContent=total.toLocaleString(); document.getElementById('dispConverted').textContent='$'+Math.round(total*settings.rate).toLocaleString(); document.getElementById('dispRate').textContent=settings.rate;
+            document.getElementById('listContainer').innerHTML = items.length===0 ? '' : items.map(i=>`
+                <div class="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-100 shadow-sm mb-2">
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <div class="flex flex-col items-end min-w-[60px]"><div class="text-lg font-bold text-slate-800">${i.price.toLocaleString()}</div><div class="text-[11px] text-slate-400">≈ ${Math.round(i.price*settings.rate).toLocaleString()}</div></div>
+                        <div class="h-8 w-px bg-slate-100"></div>
+                        <div class="flex-1 overflow-hidden"><div class="text-sm font-medium text-slate-700 truncate">${i.name}</div>${i.barcode?`<div class="text-[10px] font-mono text-slate-400">${i.barcode}</div>`:''}</div>
+                    </div>
+                    <button onclick="deleteItem('${i.id}')" class="ml-2 text-slate-300 hover:text-red-500 p-2">✕</button>
+                </div>`).join('');
+            document.getElementById('emptyState').style.display = items.length===0?'flex':'none';
+        }
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v17 (穩定修復版)</title>
+    <title>購物計算機 v19 (編輯增強版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -23,16 +23,19 @@
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         #reader video { object-fit: cover; border-radius: 12px; }
         
-        /* 隱藏收據 (截圖用) */
+        /* 隱藏收據 */
         #exportReceipt { position: fixed; top: -9999px; left: 0; width: 500px; background: white; padding: 20px; color: #1e293b; z-index: -1; }
         
+        /* 可編輯欄位樣式 */
+        [contenteditable="true"] { border-bottom: 1px dashed #cbd5e1; transition: all 0.2s; padding: 0 2px; }
+        [contenteditable="true"]:focus { outline: none; background-color: #eff6ff; border-bottom: 2px solid #3b82f6; border-radius: 4px; color: #1e40af; }
+
         /* 動畫效果 */
         @keyframes slideUp { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, -20px); opacity: 1; } }
         .toast-show { display: block !important; animation: slideUp 0.3s forwards; }
         .modal-enter { animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-        /* 關閉按鈕統一樣式 */
         .btn-close {
             display: flex; align-items: center; justify-content: center;
             width: 32px; height: 32px; border-radius: 50%;
@@ -322,8 +325,9 @@
         let currentBarcode = null;
         let items = [];
         let onConfirmAction = null;
-        let isProcessingScan = false; // Prevent flickering
+        let isProcessingScan = false;
         let settings = JSON.parse(localStorage.getItem('exSettings')) || { base: 'JPY', target: 'TWD', rate: 0.215 };
+        let html5QrCode = null;
 
         // --- Init ---
         (async function init() {
@@ -360,7 +364,6 @@
             document.getElementById('userInfoSection').classList.toggle('hidden', user.isAnonymous);
             if(!user.isAnonymous) document.getElementById('userEmailDisplay').textContent = user.email;
 
-            // [FIX] Ensure we map the document ID correctly so deletions work!
             firebase.firestore().collection('users').doc(user.uid).collection('shopping_list').orderBy('timestamp', 'desc').onSnapshot(snap => {
                 items = snap.docs.map(d => ({ ...d.data(), id: d.id })); 
                 renderList();
@@ -472,10 +475,10 @@
                     const snap = await ref.get();
                     snap.docs.forEach(d => batch.delete(d.ref));
                     
-                    // [FIX] Clean data before restore (remove old IDs to prevent conflicts)
                     backupData.forEach(item => {
                         const { id, ...cleanItem } = item; 
-                        batch.set(ref.doc(), cleanItem);
+                        const newRef = ref.doc();
+                        batch.set(newRef, cleanItem);
                     });
                     
                     await batch.commit();
@@ -538,31 +541,67 @@
                 try { const res=await fetch(`https://api.exchangerate-api.com/v4/latest/${settings.base}`); const d=await res.json(); if(d.rates[settings.target]){ settings.rate=d.rates[settings.target]; localStorage.setItem('exSettings', JSON.stringify(settings)); updateSettingsUI(); showToast("更新成功"); } } catch(e){ showToast("連線失敗"); } btn.textContent="線上更新";
             };
             
-            // Scanner Fix: Anti-flicker
             document.getElementById('btnScan').onclick = () => { 
                 document.getElementById('modalScan').classList.remove('hidden'); 
-                new Html5Qrcode("reader").start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async txt => {
-                    if(isProcessingScan) return; // Guard
+                html5QrCode = new Html5Qrcode("reader");
+                html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async txt => {
+                    if(isProcessingScan) return;
                     isProcessingScan = true;
-                    
-                    // Stop first
-                    try { await new Html5Qrcode("reader").stop(); } catch(e){} 
+                    try { await html5QrCode.stop(); html5QrCode.clear(); } catch(e){}
+                    document.getElementById('modalScan').classList.add('hidden');
                     
                     currentBarcode = txt; 
-                    document.getElementById('modalScan').classList.add('hidden');
-                    document.getElementById('inpName').value="查詢中..."; document.getElementById('scanHint').classList.remove('hidden'); document.getElementById('lblSource').textContent="...";
+                    document.getElementById('inpName').value="查詢中..."; 
+                    document.getElementById('scanHint').classList.remove('hidden'); 
+                    document.getElementById('lblSource').textContent="...";
+                    
                     let name="", src="新發現";
                     try {
                         if(dbMode==='cloud') { const d=await firebase.firestore().collection('products').doc(txt).get(); if(d.exists){ name=d.data().name; src="資料庫"; } }
                         if(!name) { const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${txt}.json`); const d=await r.json(); if(d.status===1) { name=d.product.product_name_zh||d.product.product_name; src="網路 API"; } }
                     } catch(e){}
-                    document.getElementById('inpName').value=name; document.getElementById('inpName').focus(); document.getElementById('lblSource').textContent=src;
                     
-                    setTimeout(() => { isProcessingScan = false; }, 1000); // Cooldown
+                    document.getElementById('inpName').value=name; 
+                    document.getElementById('inpName').focus(); 
+                    document.getElementById('lblSource').textContent=src;
+                    
+                    setTimeout(() => { isProcessingScan = false; }, 1000);
                 }).catch(()=>{}); 
             };
-            document.getElementById('btnCloseScan').onclick = () => document.getElementById('modalScan').classList.add('hidden');
+            document.getElementById('btnCloseScan').onclick = () => { 
+                if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear()).catch(()=>{});
+                document.getElementById('modalScan').classList.add('hidden'); 
+            };
             document.getElementById('btnClearScan').onclick = () => { currentBarcode=null; document.getElementById('scanHint').classList.add('hidden'); document.getElementById('inpName').value=''; };
+
+            // Content Editable Listener
+            document.getElementById('listContainer').addEventListener('focusout', async (e) => {
+                const target = e.target;
+                if (!target.hasAttribute('contenteditable')) return;
+                
+                const id = target.dataset.id;
+                const field = target.dataset.field;
+                let val = target.textContent.trim();
+                
+                if (field === 'price') {
+                    val = parseFloat(val.replace(/,/g, ''));
+                    if (isNaN(val)) val = 0;
+                }
+                
+                if (dbMode === 'cloud') {
+                    await firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list').doc(id).update({ [field]: val });
+                } else {
+                    const item = items.find(i => i.id === id);
+                    if (item) { item[field] = val; saveLocal(); renderList(); }
+                }
+            });
+            
+            // Prevent Enter newlines
+            document.getElementById('listContainer').addEventListener('keydown', (e) => {
+                if (e.target.hasAttribute('contenteditable') && e.key === 'Enter') {
+                    e.preventDefault(); e.target.blur();
+                }
+            });
         }
 
         window.deleteItem = (id) => showConfirm("刪除", "確定移除？", async () => {
@@ -589,15 +628,22 @@
             } catch(e) { document.getElementById('dbListContainer').innerHTML='<div class="text-center text-red-400">失敗</div>'; }
         }
         window.delPub = (id) => showConfirm("刪除", "確定刪除此公共條碼？", async () => { await firebase.firestore().collection('products').doc(id).delete(); openDbManager(); showToast("已刪除"); });
+        
         function renderList() {
             const total = items.reduce((s,i)=>s+(i.price||0),0);
             document.getElementById('dispTotal').textContent=total.toLocaleString(); document.getElementById('dispConverted').textContent='$'+Math.round(total*settings.rate).toLocaleString(); document.getElementById('dispRate').textContent=settings.rate;
             document.getElementById('listContainer').innerHTML = items.length===0 ? '' : items.map(i=>`
                 <div class="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-100 shadow-sm mb-2">
                     <div class="flex items-center gap-4 flex-1 min-w-0">
-                        <div class="flex flex-col items-end min-w-[60px]"><div class="text-lg font-bold text-slate-800">${i.price.toLocaleString()}</div><div class="text-[11px] text-slate-400">≈ ${Math.round(i.price*settings.rate).toLocaleString()}</div></div>
+                        <div class="flex flex-col items-end min-w-[60px]">
+                            <div class="text-lg font-bold text-slate-800 tracking-tight" contenteditable="true" data-id="${i.id}" data-field="price">${i.price.toLocaleString()}</div>
+                            <div class="text-[11px] text-slate-400">≈ ${Math.round(i.price*settings.rate).toLocaleString()}</div>
+                        </div>
                         <div class="h-8 w-px bg-slate-100"></div>
-                        <div class="flex-1 overflow-hidden"><div class="text-sm font-medium text-slate-700 truncate">${i.name}</div>${i.barcode?`<div class="text-[10px] font-mono text-slate-400">${i.barcode}</div>`:''}</div>
+                        <div class="flex-1 overflow-hidden">
+                            <div class="text-sm font-medium text-slate-700 truncate" contenteditable="true" data-id="${i.id}" data-field="name">${i.name}</div>
+                            ${i.barcode?`<div class="text-[10px] font-mono text-slate-400 bg-slate-50 inline-block px-1.5 py-0.5 rounded border border-slate-100 mt-0.5">${i.barcode}</div>`:''}
+                        </div>
                     </div>
                     <button onclick="deleteItem('${i.id}')" class="ml-2 text-slate-300 hover:text-red-500 p-2">✕</button>
                 </div>`).join('');

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>購物計算機 v13 (專屬資料庫版)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 核心函式庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <!-- Firebase SDK (使用 Compat 版本以利單檔執行) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { touch-action: manipulation; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "Segoe UI", Roboto, sans-serif; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        #reader video { object-fit: cover; border-radius: 12px; }
+        #exportReceipt { position: absolute; top: -9999px; left: -9999px; width: 500px; background: white; padding: 20px; color: #1e293b; }
+        
+        /* Toast Animation */
+        @keyframes slideUp { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, -20px); opacity: 1; } }
+        .toast-show { display: block !important; animation: slideUp 0.3s forwards; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen pb-24 text-slate-800">
+
+    <!-- 頂部導航 -->
+    <div class="sticky top-0 z-30 bg-blue-600 text-white shadow-lg rounded-b-2xl transition-all">
+        <div class="max-w-md mx-auto px-4 py-3">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex flex-col">
+                    <h1 class="text-sm font-bold tracking-wide flex items-center gap-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                        購物計算機 Pro
+                    </h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span id="statusBadge" class="text-[10px] bg-blue-800 px-1.5 py-0.5 rounded opacity-80">連線中...</span>
+                        <span id="userBadge" class="text-[10px] bg-indigo-500 px-1.5 py-0.5 rounded hidden">訪客</span>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button id="btnDb" class="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg shadow-sm transition-colors" title="公共庫存">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><database cx="12" cy="12" r="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                    </button>
+                    <button id="btnSettings" class="p-2 bg-blue-700 hover:bg-blue-800 rounded-lg border border-blue-500/30 transition-colors" title="設定">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </button>
+                    <button id="btnExport" class="p-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg border border-emerald-500/30 transition-colors" title="匯出">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </button>
+                    <button id="btnClear" class="p-2 bg-red-500 hover:bg-red-600 rounded-lg border border-red-400/30 transition-colors" title="清空">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 金額顯示面板 -->
+            <div class="bg-white/10 rounded-xl p-3 backdrop-blur-sm border border-white/10">
+                <div class="flex flex-col items-center justify-center">
+                    <div class="flex items-baseline gap-1.5">
+                        <span id="lblBase" class="text-sm font-medium opacity-80">JPY</span>
+                        <span id="dispTotal" class="text-4xl font-bold tracking-tight">0</span>
+                    </div>
+                    <div class="text-blue-100 text-sm font-medium bg-blue-800/40 px-3 py-1 rounded-full mt-1 flex items-center gap-2 border border-blue-400/20">
+                        <span>≈</span><span id="dispConverted">$0</span><span id="lblTarget">TWD</span>
+                        <span class="text-[10px] opacity-60 ml-1 border-l border-white/20 pl-2">匯率: <span id="dispRate">--</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要內容 -->
+    <div class="max-w-md mx-auto px-3 mt-4 pb-10">
+        <!-- 輸入與掃描區 -->
+        <div class="bg-white rounded-2xl shadow-sm p-3 mb-4 border border-slate-200 sticky top-[10px] z-20">
+            <form id="formItem" class="flex flex-col gap-2">
+                <div class="flex gap-2">
+                    <button type="button" id="btnScan" class="bg-slate-100 text-slate-600 px-3 rounded-xl border border-slate-200 hover:bg-slate-200 transition-colors flex items-center justify-center">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="10" x="7" y="7" rx="1"/></svg>
+                    </button>
+                    <div class="flex-1 relative">
+                        <input type="text" id="inpName" placeholder="品名 (或掃描)" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-2 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
+                    </div>
+                    <div class="w-1/3 min-w-[90px]">
+                        <input type="number" id="inpPrice" inputmode="decimal" placeholder="價格" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 text-right text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
+                    </div>
+                </div>
+                
+                <!-- 掃描結果提示 -->
+                <div id="scanHint" class="hidden text-xs px-2 flex justify-between items-center bg-green-50 p-2 rounded-lg border border-green-100 text-green-700 animate-pulse-once">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-green-200 text-green-800 px-1.5 rounded text-[10px] font-bold">已掃描</span>
+                        <span id="lblSource" class="font-bold">--</span>
+                    </div>
+                    <button type="button" id="btnClearScan" class="text-slate-400 hover:text-red-500 px-2 font-bold">✕</button>
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded-xl font-bold text-white text-sm bg-blue-600 shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all flex justify-center items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    加入購物清單
+                </button>
+            </form>
+        </div>
+
+        <!-- 清單列表 -->
+        <div id="listContainer" class="space-y-2"></div>
+        
+        <!-- 空狀態 -->
+        <div id="emptyState" class="hidden flex-col items-center py-12 text-slate-300">
+            <svg class="w-16 h-16 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            <p class="font-medium">購物清單是空的</p>
+            <p class="text-xs mt-1 opacity-70">開始掃描或輸入價格吧！</p>
+        </div>
+    </div>
+
+    <!-- 1. 設定彈窗 -->
+    <div id="modalSettings" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden transform transition-all">
+            <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    匯率與設定
+                </h3>
+                <button onclick="document.getElementById('modalSettings').classList.add('hidden')" class="bg-white/20 hover:bg-white/30 p-1 rounded-full">✕</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <!-- 幣別選擇 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">消費幣別</label>
+                        <select id="selBase" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">換算幣別</label>
+                        <select id="selTarget" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"></select>
+                    </div>
+                </div>
+
+                <!-- 匯率輸入 -->
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <label class="block text-xs font-bold text-slate-400 mb-1">當前匯率 (1 <span id="lblBaseSet">JPY</span> = ? <span id="lblTargetSet">TWD</span>)</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="inpRate" step="0.0001" class="flex-1 border border-slate-200 rounded-lg p-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00">
+                        <button id="btnFetchRate" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold hover:bg-blue-200 transition-colors">線上更新</button>
+                    </div>
+                </div>
+
+                <!-- 登入狀態 -->
+                <div class="pt-2 border-t border-slate-100">
+                    <p class="text-xs text-slate-400 mb-2">帳號管理</p>
+                    <div id="loginSection">
+                        <button id="btnLoginGoogle" class="w-full py-2.5 bg-white border border-slate-300 rounded-lg text-slate-600 text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-50">
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4">
+                            使用 Google 登入
+                        </button>
+                        <p class="text-[10px] text-slate-400 mt-2 text-center">管理員 (jingsyuan@gmail.com) 擁有完整權限</p>
+                    </div>
+                    <div id="userInfoSection" class="hidden text-center">
+                        <p class="text-sm font-bold text-slate-700" id="userEmailDisplay"></p>
+                        <button id="btnLogout" class="text-xs text-red-500 hover:underline mt-2">登出</button>
+                    </div>
+                </div>
+
+                <button onclick="document.getElementById('modalSettings').classList.add('hidden')" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold mt-2">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 庫存管理彈窗 -->
+    <div id="modalDb" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm h-[80vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-indigo-600 text-white rounded-t-2xl">
+                <h3 class="font-bold flex items-center gap-2">公共商品庫存</h3>
+                <button onclick="document.getElementById('modalDb').classList.add('hidden')" class="text-white/80 hover:text-white">✕</button>
+            </div>
+            
+            <div class="p-2 bg-indigo-50 text-indigo-800 text-xs font-bold text-center border-b border-indigo-100" id="adminNotice">
+                <!-- 權限提示文字 -->
+            </div>
+
+            <div class="p-4 overflow-y-auto flex-1 space-y-2" id="dbListContainer"></div>
+        </div>
+    </div>
+
+    <!-- 3. 掃描器 Modal -->
+    <div id="modalScan" class="hidden fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
+        <button id="btnCloseScan" class="absolute top-4 right-4 text-white bg-white/20 p-2 rounded-full backdrop-blur-sm z-50">✕</button>
+        <div class="text-white mb-4 text-lg font-bold">掃描商品條碼</div>
+        <div id="reader" class="w-full max-w-sm bg-black rounded-xl overflow-hidden border border-gray-700 shadow-2xl"></div>
+    </div>
+
+    <!-- 4. 匯出 Modal -->
+    <div id="modalExport" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center space-y-3 shadow-xl">
+            <h3 class="font-bold mb-4 text-gray-800 text-lg">匯出購物清單</h3>
+            <button onclick="doExport('png')" class="w-full p-4 border rounded-xl hover:bg-blue-50 text-blue-700 font-bold flex items-center justify-center gap-2">🖼️ 儲存為圖片</button>
+            <button onclick="doExport('xlsx')" class="w-full p-4 border rounded-xl hover:bg-green-50 text-green-700 font-bold flex items-center justify-center gap-2">📊 儲存為 Excel</button>
+            <button onclick="doExport('pdf')" class="w-full p-4 border rounded-xl hover:bg-red-50 text-red-700 font-bold flex items-center justify-center gap-2">📄 儲存為 PDF</button>
+            <button onclick="document.getElementById('modalExport').classList.add('hidden')" class="w-full p-2 text-slate-400 text-sm mt-2">取消</button>
+        </div>
+    </div>
+
+    <!-- 5. 確認對話框 -->
+    <div id="modalConfirm" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600 mx-auto">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h3 id="confirmTitle" class="text-xl font-bold text-slate-800 mb-2 text-center">確認刪除？</h3>
+            <p id="confirmMsg" class="text-sm text-slate-500 mb-6 text-center">此動作無法復原，請確認是否繼續。</p>
+            <div class="grid grid-cols-2 gap-3">
+                <button id="btnConfirmCancel" class="py-3 px-4 rounded-xl bg-slate-100 font-bold text-slate-600 hover:bg-slate-200">取消</button>
+                <button id="btnConfirmOk" class="py-3 px-4 rounded-xl bg-red-600 font-bold text-white shadow-lg shadow-red-200 hover:bg-red-700">確定執行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl z-[70] opacity-0 transition-opacity whitespace-nowrap"></div>
+
+    <!-- Hidden Receipt -->
+    <div id="exportReceipt">
+        <div style="text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+            <h2 style="color: #2563eb; margin:0; font-size:24px;">購物清單</h2>
+            <p id="receiptDate" style="color:#666; font-size:12px; margin:5px 0 0 0;"></p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr style="border-bottom: 2px solid #333;"><th style="text-align:left; padding:5px">品名</th><th style="text-align:right">價格</th><th style="text-align:right">約</th></tr>
+            <tbody id="receiptItems"></tbody>
+            <tr style="border-top: 2px solid #333;"><td style="padding-top:10px; font-weight:bold">總計</td><td style="text-align:right; padding-top:10px" id="receiptTotalBase"></td><td style="text-align:right; padding-top:10px; color:#2563eb; font-weight:bold" id="receiptTotalTarget"></td></tr>
+        </table>
+    </div>
+
+    <script>
+        // --- 核心變數與設定 ---
+        const ADMIN_EMAIL = 'jingsyuan@gmail.com';
+        const CURRENCIES = {
+            'TWD': '新台幣 (TWD)', 'JPY': '日圓 (JPY)', 'USD': '美金 (USD)', 'EUR': '歐元 (EUR)',
+            'KRW': '韓元 (KRW)', 'CNY': '人民幣 (CNY)', 'HKD': '港幣 (HKD)', 'THB': '泰銖 (THB)',
+            'SGD': '新幣 (SGD)', 'MYR': '馬幣 (MYR)'
+        };
+
+        // TODO: 您的設定已填入
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCpjQ9W336gYM8fPtZPcy2I5tceEQrsBA",
+            authDomain: "shopping-ceef3.firebaseapp.com",
+            projectId: "shopping-ceef3",
+            storageBucket: "shopping-ceef3.firebasestorage.app",
+            messagingSenderId: "928963463458",
+            appId: "1:928963463458:web:001d86393d780db851fd7b",
+            measurementId: "G-KR9GS69ZPN"
+        };
+
+        let dbMode = 'local';
+        let currentUser = null;
+        let currentBarcode = null;
+        let items = [];
+        let onConfirmAction = null;
+        let settings = JSON.parse(localStorage.getItem('exSettings')) || { base: 'JPY', target: 'TWD', rate: 0.215 };
+
+        // --- 初始化 ---
+        (async function init() {
+            initCurrencySelects();
+            updateSettingsUI();
+            bindEvents();
+
+            try {
+                firebase.initializeApp(firebaseConfig);
+                const auth = firebase.auth();
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        handleLoginSuccess(user);
+                    } else {
+                        // 預設匿名登入，讓一般人也能用
+                        auth.signInAnonymously().catch(e => console.error(e));
+                    }
+                });
+            } catch (e) {
+                console.log("Local Mode Fallback");
+                items = JSON.parse(localStorage.getItem('localItems')) || [];
+                renderList();
+            }
+        })();
+
+        function handleLoginSuccess(user) {
+            currentUser = user;
+            dbMode = 'cloud';
+            
+            updateStatus('🟢 雲端同步中', 'bg-green-100 text-green-700');
+            const badge = document.getElementById('userBadge');
+            badge.classList.remove('hidden');
+            
+            const loginSec = document.getElementById('loginSection');
+            const infoSec = document.getElementById('userInfoSection');
+            const emailDisp = document.getElementById('userEmailDisplay');
+
+            if (user.email === ADMIN_EMAIL) {
+                badge.textContent = "管理者";
+                badge.className = "text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold border border-red-200";
+                loginSec.classList.add('hidden');
+                infoSec.classList.remove('hidden');
+                emailDisp.textContent = user.email;
+            } else if (user.isAnonymous) {
+                badge.textContent = "訪客";
+                badge.className = "text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded";
+                loginSec.classList.remove('hidden');
+                infoSec.classList.add('hidden');
+            } else {
+                badge.textContent = "已登入";
+                badge.className = "text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded";
+                loginSec.classList.add('hidden');
+                infoSec.classList.remove('hidden');
+                emailDisp.textContent = user.email;
+            }
+
+            // 監聽個人清單 (users/{uid}/shopping_list)
+            firebase.firestore().collection('users').doc(user.uid).collection('shopping_list')
+                .orderBy('timestamp', 'desc')
+                .onSnapshot(snap => {
+                    items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    renderList();
+                });
+        }
+
+        function initCurrencySelects() {
+            const opts = Object.entries(CURRENCIES).map(([code, name]) => `<option value="${code}">${name}</option>`).join('');
+            document.getElementById('selBase').innerHTML = opts;
+            document.getElementById('selTarget').innerHTML = opts;
+        }
+
+        function updateSettingsUI() {
+            document.getElementById('selBase').value = settings.base;
+            document.getElementById('selTarget').value = settings.target;
+            document.getElementById('inpRate').value = settings.rate;
+            document.getElementById('lblBase').textContent = settings.base;
+            document.getElementById('lblTarget').textContent = settings.target;
+            document.getElementById('lblBaseSet').textContent = settings.base;
+            document.getElementById('lblTargetSet').textContent = settings.target;
+            document.getElementById('inpPrice').placeholder = `價格 (${settings.base})`;
+            renderList();
+        }
+
+        function updateStatus(text, classes) {
+            const el = document.getElementById('statusBadge');
+            el.textContent = text;
+            el.className = `text-[10px] px-1.5 py-0.5 rounded opacity-80 ${classes}`;
+        }
+
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('toast-show');
+            setTimeout(() => el.classList.remove('toast-show'), 2500);
+        }
+
+        function showConfirm(title, msg, callback) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMsg').textContent = msg;
+            document.getElementById('modalConfirm').classList.remove('hidden');
+            onConfirmAction = callback;
+        }
+
+        function bindEvents() {
+            document.getElementById('btnSettings').onclick = () => document.getElementById('modalSettings').classList.remove('hidden');
+            document.getElementById('btnExport').onclick = () => document.getElementById('modalExport').classList.remove('hidden');
+            document.getElementById('btnDb').onclick = openDbManager;
+            document.getElementById('btnConfirmCancel').onclick = () => { document.getElementById('modalConfirm').classList.add('hidden'); onConfirmAction = null; };
+            document.getElementById('btnConfirmOk').onclick = () => { if(onConfirmAction) onConfirmAction(); document.getElementById('modalConfirm').classList.add('hidden'); onConfirmAction = null; };
+            
+            // Login/Logout
+            document.getElementById('btnLoginGoogle').onclick = async () => {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                try { await firebase.auth().signInWithPopup(provider); showToast("登入成功！"); } 
+                catch(e) { alert("登入失敗: " + e.message); }
+            };
+            document.getElementById('btnLogout').onclick = () => firebase.auth().signOut().then(()=>window.location.reload());
+
+            // Clear
+            document.getElementById('btnClear').onclick = () => {
+                showConfirm("清空購物清單", "確定要刪除所有項目嗎？", async () => {
+                    if (dbMode === 'cloud') {
+                        const batch = firebase.firestore().batch();
+                        const ref = firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list');
+                        const snap = await ref.get();
+                        snap.docs.forEach(doc => batch.delete(doc.ref));
+                        await batch.commit();
+                    } else {
+                        items = [];
+                        saveLocal();
+                        renderList();
+                    }
+                    showToast("已清空");
+                });
+            };
+
+            // Add Item
+            document.getElementById('formItem').onsubmit = async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('inpName').value.trim();
+                const price = parseFloat(document.getElementById('inpPrice').value);
+                if (!price && price !== 0) return;
+
+                const newItem = {
+                    name: name || '(未命名)',
+                    price: price,
+                    barcode: currentBarcode,
+                    timestamp: Date.now()
+                };
+
+                if (dbMode === 'cloud') {
+                    // 私人清單
+                    await firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list').add({
+                        ...newItem,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    // 公共庫存
+                    if (currentBarcode && name) {
+                        firebase.firestore().collection('products').doc(currentBarcode).set({
+                            name: name,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            contributor: currentUser.uid
+                        }, { merge: true });
+                    }
+                } else {
+                    newItem.id = Date.now().toString();
+                    items.unshift(newItem);
+                    saveLocal();
+                    renderList();
+                }
+
+                document.getElementById('inpName').value = '';
+                document.getElementById('inpPrice').value = '';
+                clearScan();
+                showToast("已加入");
+            };
+
+            // Settings
+            ['selBase', 'selTarget'].forEach(id => {
+                document.getElementById(id).onchange = () => {
+                    settings.base = document.getElementById('selBase').value;
+                    settings.target = document.getElementById('selTarget').value;
+                    saveSettings();
+                    updateSettingsUI();
+                    document.getElementById('btnFetchRate').click();
+                };
+            });
+            document.getElementById('inpRate').oninput = (e) => { settings.rate = parseFloat(e.target.value) || 0; saveSettings(); renderList(); };
+            document.getElementById('btnFetchRate').onclick = async () => {
+                const btn = document.getElementById('btnFetchRate'); btn.textContent = "...";
+                try {
+                    const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${settings.base}`);
+                    const data = await res.json();
+                    if (data.rates[settings.target]) {
+                        settings.rate = data.rates[settings.target];
+                        saveSettings(); updateSettingsUI(); showToast("匯率更新成功");
+                    }
+                } catch(e) { showToast("連線失敗"); }
+                btn.textContent = "線上更新";
+            };
+
+            // Scanner
+            document.getElementById('btnScan').onclick = startScanner;
+            document.getElementById('btnCloseScan').onclick = stopScanner;
+            document.getElementById('btnClearScan').onclick = clearScan;
+        }
+
+        function renderList() {
+            const list = document.getElementById('listContainer');
+            const total = items.reduce((sum, i) => sum + (i.price || 0), 0);
+            document.getElementById('dispTotal').textContent = total.toLocaleString();
+            document.getElementById('dispConverted').textContent = '$' + Math.round(total * settings.rate).toLocaleString();
+            document.getElementById('dispRate').textContent = settings.rate;
+
+            if (items.length === 0) {
+                list.innerHTML = '';
+                document.getElementById('emptyState').style.display = 'flex';
+                return;
+            }
+            document.getElementById('emptyState').style.display = 'none';
+
+            list.innerHTML = items.map(item => `
+                <div class="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-100 shadow-sm animate-fade-in group">
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <div class="flex flex-col items-end min-w-[80px]">
+                            <div class="text-lg font-bold text-slate-800 tracking-tight">${item.price.toLocaleString()}</div>
+                            <div class="text-[11px] text-slate-400 font-medium">≈ ${Math.round(item.price * settings.rate).toLocaleString()}</div>
+                        </div>
+                        <div class="h-8 w-px bg-slate-100"></div>
+                        <div class="flex-1 overflow-hidden">
+                            <div class="text-sm font-medium text-slate-700 truncate">${item.name}</div>
+                            ${item.barcode ? `<div class="text-[10px] font-mono text-slate-400 bg-slate-50 inline-block px-1.5 py-0.5 rounded border border-slate-100 mt-0.5">${item.barcode}</div>` : ''}
+                        </div>
+                    </div>
+                    <button onclick="deleteItem('${item.id}')" class="ml-2 text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">✕</button>
+                </div>
+            `).join('');
+        }
+
+        window.deleteItem = (id) => {
+            showConfirm("刪除項目", "確定要移除嗎？", async () => {
+                if (dbMode === 'cloud') {
+                    await firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list').doc(String(id)).delete();
+                } else {
+                    items = items.filter(i => String(i.id) !== String(id));
+                    saveLocal();
+                    renderList();
+                }
+                showToast("已刪除");
+            });
+        };
+
+        async function openDbManager() {
+            const modal = document.getElementById('modalDb');
+            const container = document.getElementById('dbListContainer');
+            const notice = document.getElementById('adminNotice');
+            modal.classList.remove('hidden');
+
+            if (dbMode !== 'cloud') { container.innerHTML = '<div class="text-center py-10 text-slate-400">本機模式無法連線</div>'; return; }
+
+            const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+            notice.textContent = isAdmin ? "👑 管理員：可刪除條碼" : "👀 訪客：僅能檢視";
+            
+            container.innerHTML = '<div class="text-center py-10 text-slate-400">載入中...</div>';
+
+            try {
+                const snap = await firebase.firestore().collection('products').orderBy('updatedAt', 'desc').limit(50).get();
+                if (snap.empty) { container.innerHTML = '<div class="text-center py-10 text-slate-400">庫存是空的</div>'; return; }
+
+                container.innerHTML = snap.docs.map(doc => {
+                    const data = doc.data();
+                    const deleteBtn = isAdmin 
+                        ? `<button onclick="deletePublicBarcode('${doc.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded text-xs border border-red-200">刪除</button>` 
+                        : `<span class="text-[10px] text-slate-300 px-2">唯讀</span>`;
+
+                    return `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <div class="overflow-hidden mr-3">
+                            <div class="font-bold text-sm text-slate-700 truncate">${data.name}</div>
+                            <div class="text-[10px] font-mono text-indigo-400 break-all">${doc.id}</div>
+                        </div>
+                        ${deleteBtn}
+                    </div>`;
+                }).join('');
+            } catch(e) { container.innerHTML = '<div class="text-center py-10 text-red-400">載入失敗</div>'; }
+        }
+
+        window.deletePublicBarcode = (id) => {
+            showConfirm("刪除公共條碼", "這會影響所有使用者，確定嗎？", async () => {
+                if (currentUser && currentUser.email === ADMIN_EMAIL) {
+                    await firebase.firestore().collection('products').doc(id).delete();
+                    openDbManager();
+                    showToast("條碼已刪除");
+                }
+            });
+        };
+
+        let html5QrCode;
+        function startScanner() { document.getElementById('modalScan').classList.remove('hidden'); html5QrCode = new Html5Qrcode("reader"); html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess).catch(()=>{}); }
+        function stopScanner() { if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear()); document.getElementById('modalScan').classList.add('hidden'); }
+        async function onScanSuccess(decodedText) {
+            stopScanner();
+            currentBarcode = decodedText;
+            const nameInp = document.getElementById('inpName');
+            nameInp.value = "查詢中..."; nameInp.disabled = true;
+            document.getElementById('scanHint').classList.remove('hidden');
+            let foundName = ""; let source = "新發現";
+            try {
+                if (dbMode === 'cloud') {
+                    const doc = await firebase.firestore().collection('products').doc(decodedText).get();
+                    if(doc.exists) { foundName = doc.data().name; source = "資料庫"; }
+                }
+                if (!foundName) {
+                    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
+                    const data = await res.json();
+                    if (data.status === 1) { foundName = data.product.product_name_zh || data.product.product_name || ""; source = "網路 API"; }
+                }
+            } catch(e) {}
+            nameInp.value = foundName; nameInp.disabled = false; nameInp.focus();
+            document.getElementById('lblSource').textContent = source;
+            showToast(foundName ? "已找到資料" : "未找到，請輸入");
+        }
+        function clearScan() { currentBarcode = null; document.getElementById('scanHint').classList.add('hidden'); document.getElementById('inpName').value = ''; }
+
+        window.doExport = async (type) => {
+            document.getElementById('modalExport').classList.add('hidden');
+            document.getElementById('receiptDate').textContent = new Date().toLocaleString();
+            document.getElementById('receiptTotalBase').textContent = document.getElementById('dispTotal').textContent;
+            document.getElementById('receiptTotalTarget').textContent = document.getElementById('dispConverted').textContent;
+            document.getElementById('receiptItems').innerHTML = items.map(i => `<tr><td style="padding:5px">${i.name}</td><td style="text-align:right">${i.price}</td><td style="text-align:right">${Math.round(i.price * settings.rate)}</td></tr>`).join('');
+            const filename = `ShoppingList_${Date.now()}`;
+            const element = document.getElementById('exportReceipt');
+            if (type === 'png') { const canvas = await html2canvas(element, { scale: 2 }); const a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = filename + '.png'; a.click(); }
+            else if (type === 'xlsx') { const ws = XLSX.utils.json_to_sheet(items.map(i => ({ '品名': i.name, '價格': i.price, '約': Math.round(i.price * settings.rate) }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "清單"); XLSX.writeFile(wb, filename + '.xlsx'); }
+            else if (type === 'pdf') { const canvas = await html2canvas(element, { scale: 2 }); const pdf = new window.jspdf.jsPDF(); const img = canvas.toDataURL('image/png'); const props = pdf.getImageProperties(img); const h = (props.height * pdf.internal.pageSize.getWidth()) / props.width; pdf.addImage(img, 'PNG', 0, 10, pdf.internal.pageSize.getWidth(), h); pdf.save(filename + '.pdf'); }
+        };
+        function saveLocal() { localStorage.setItem('localItems', JSON.stringify(items)); }
+        function saveSettings() { localStorage.setItem('exSettings', JSON.stringify(settings)); }
+    </script>
+</body>
+</html>
+```
+
+### 第二步：請至 Firebase Console 設定規則 (Firestore Rules)
+
+請將這段規則貼到您的 Firebase Console > Firestore Database > Rules 分頁中，以確保權限生效：
+
+```firestore
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 判斷是否為管理員
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'jingsyuan@gmail.com';
+    }
+
+    // 1. 使用者個人清單 (絕對隱私)
+    // 只有使用者自己可以讀寫自己的資料
+    match /users/{userId}/shopping_list/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 2. 公共商品資料庫 (Crowdsourcing)
+    match /products/{productId} {
+      // 所有人都可以讀取 (只要有登入，包含匿名)
+      allow read: if request.auth != null;
+      
+      // 所有人都可以新增或更新 (貢獻條碼)
+      allow create, update: if request.auth != null;
+      
+      // 【關鍵】只有管理員 (jingsyuan@gmail.com) 可以刪除
+      allow delete: if isAdmin();
+    }
+  }
+}

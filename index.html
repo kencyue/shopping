@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v23</title>
+    <title>購物計算機 v24 (數量編輯+UI調整)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -21,14 +21,14 @@
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         #reader video { object-fit: cover; border-radius: 12px; }
         
-        /* 隱藏收據 - 調整樣式以適應匯出 */
         #exportReceipt { position: fixed; top: -9999px; left: 0; width: 600px; background: white; padding: 40px; color: #1e293b; z-index: -1; font-family: sans-serif; }
         
         /* 可編輯欄位樣式 */
         [contenteditable="true"] { border-bottom: 1px dashed #cbd5e1; transition: all 0.2s; padding: 0 2px; }
         [contenteditable="true"]:focus { outline: none; background-color: #eff6ff; border-bottom: 2px solid #3b82f6; border-radius: 4px; color: #1e40af; }
+        /* 數量編輯特別樣式 */
+        [data-field="qty"][contenteditable="true"]:focus { background-color: #dbeafe; border-bottom: 1px solid #2563eb; }
 
-        /* 動畫效果 */
         @keyframes slideUp { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, -20px); opacity: 1; } }
         .toast-show { display: block !important; animation: slideUp 0.3s forwards; }
         .modal-enter { animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -80,10 +80,16 @@
                         <span id="lblBase" class="text-sm font-medium opacity-80">TWD</span>
                         <span id="dispTotal" class="text-4xl font-bold tracking-tight">0</span>
                     </div>
-                    <div class="text-xs text-blue-200 mt-0.5 mb-1 font-mono">共 <span id="dispCount" class="font-bold text-white">0</span> 項</div>
 
-                    <div class="text-blue-100 text-sm font-medium bg-blue-800/40 px-3 py-1 rounded-full flex items-center gap-2 border border-blue-400/20">
-                        <span>≈</span><span id="dispConverted">$0</span><span id="lblTarget">TWD</span>
+                    <div class="text-blue-100 text-sm font-medium bg-blue-800/40 px-3 py-1 rounded-full mt-1 flex items-center flex-wrap justify-center gap-2 border border-blue-400/20">
+                        <div class="flex items-center">
+                            <span>≈</span><span id="dispConverted">$0</span><span id="lblTarget">TWD</span>
+                        </div>
+                        
+                        <div class="text-[10px] bg-blue-400/20 px-2 py-0.5 rounded text-blue-50 border border-blue-300/20">
+                            共 <span id="dispCount" class="font-bold text-white">0</span> 項
+                        </div>
+
                         <span class="text-[10px] opacity-60 ml-1 border-l border-white/20 pl-2">匯率: <span id="dispRate">1</span></span>
                     </div>
                 </div>
@@ -638,7 +644,6 @@
                 const qrConfig = { 
                     fps: 10, 
                     qrbox: { width: 250, height: 150 },
-                    // 限定條碼格式以排除 QR Code
                     formatsToSupport: [
                         Html5QrcodeSupportedFormats.EAN_13,
                         Html5QrcodeSupportedFormats.EAN_8,
@@ -697,6 +702,10 @@
                 if (field === 'price') {
                     val = parseFloat(val.replace(/,/g, ''));
                     if (isNaN(val)) val = 0;
+                } else if (field === 'qty') {
+                    // 數量編輯邏輯：過濾非數字，確保至少為 1
+                    val = parseInt(val.replace(/[^\d]/g, ''));
+                    if (isNaN(val) || val < 1) val = 1;
                 }
                 
                 if (dbMode === 'cloud') {
@@ -790,7 +799,7 @@
                         <div class="flex flex-col items-end min-w-[60px]">
                             <div class="flex items-baseline gap-1">
                                 <div class="text-lg font-bold text-slate-800 tracking-tight" contenteditable="true" data-id="${i.id}" data-field="price">${i.price.toLocaleString()}</div>
-                                ${(i.qty||1) > 1 ? `<span class="text-xs font-bold text-blue-600 bg-blue-50 px-1 rounded">x${i.qty}</span>` : ''}
+                                <div class="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded cursor-text border border-blue-100 hover:bg-blue-100" contenteditable="true" data-id="${i.id}" data-field="qty">x${i.qty||1}</div>
                             </div>
                             <div class="text-[11px] text-slate-400">≈ ${Math.round((i.price * (i.qty||1))*settings.rate).toLocaleString()}</div>
                         </div>

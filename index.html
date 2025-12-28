@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v13 (專屬資料庫版)</title>
+    <title>購物計算機 v14 (備份分享版)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -50,10 +50,11 @@
                     <button id="btnDb" class="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg shadow-sm transition-colors" title="公共庫存">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><database cx="12" cy="12" r="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                     </button>
+                    <!-- Icon Updated -->
                     <button id="btnSettings" class="p-2 bg-blue-700 hover:bg-blue-800 rounded-lg border border-blue-500/30 transition-colors" title="設定">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     </button>
-                    <button id="btnExport" class="p-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg border border-emerald-500/30 transition-colors" title="匯出">
+                    <button id="btnExport" class="p-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg border border-emerald-500/30 transition-colors" title="匯出/備份">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </button>
                     <button id="btnClear" class="p-2 bg-red-500 hover:bg-red-600 rounded-lg border border-red-400/30 transition-colors" title="清空">
@@ -127,7 +128,7 @@
         <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden transform transition-all">
             <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
                 <h3 class="font-bold text-lg flex items-center gap-2">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     匯率與設定
                 </h3>
                 <button onclick="document.getElementById('modalSettings').classList.add('hidden')" class="bg-white/20 hover:bg-white/30 p-1 rounded-full">✕</button>
@@ -178,9 +179,13 @@
     <!-- 2. 庫存管理彈窗 -->
     <div id="modalDb" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm h-[80vh] flex flex-col shadow-2xl">
-            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-indigo-600 text-white rounded-t-2xl">
-                <h3 class="font-bold flex items-center gap-2">公共商品庫存</h3>
-                <button onclick="document.getElementById('modalDb').classList.add('hidden')" class="text-white/80 hover:text-white">✕</button>
+            <div class="p-4 border-b border-gray-100 flex flex-col gap-2 bg-indigo-600 text-white rounded-t-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold flex items-center gap-2">公共商品庫存</h3>
+                    <button onclick="document.getElementById('modalDb').classList.add('hidden')" class="text-white/80 hover:text-white">✕</button>
+                </div>
+                <!-- 搜尋框 -->
+                <input type="text" id="inpDbSearch" placeholder="🔍 快速搜尋條碼或品名..." class="w-full px-3 py-2 text-sm text-slate-800 rounded-lg focus:outline-none" oninput="filterDbList(this.value)">
             </div>
             
             <div class="p-2 bg-indigo-50 text-indigo-800 text-xs font-bold text-center border-b border-indigo-100" id="adminNotice">
@@ -198,14 +203,41 @@
         <div id="reader" class="w-full max-w-sm bg-black rounded-xl overflow-hidden border border-gray-700 shadow-2xl"></div>
     </div>
 
-    <!-- 4. 匯出 Modal -->
+    <!-- 4. 匯出/分享/備份 Modal -->
     <div id="modalExport" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center space-y-3 shadow-xl">
-            <h3 class="font-bold mb-4 text-gray-800 text-lg">匯出購物清單</h3>
-            <button onclick="doExport('png')" class="w-full p-4 border rounded-xl hover:bg-blue-50 text-blue-700 font-bold flex items-center justify-center gap-2">🖼️ 儲存為圖片</button>
-            <button onclick="doExport('xlsx')" class="w-full p-4 border rounded-xl hover:bg-green-50 text-green-700 font-bold flex items-center justify-center gap-2">📊 儲存為 Excel</button>
-            <button onclick="doExport('pdf')" class="w-full p-4 border rounded-xl hover:bg-red-50 text-red-700 font-bold flex items-center justify-center gap-2">📄 儲存為 PDF</button>
-            <button onclick="document.getElementById('modalExport').classList.add('hidden')" class="w-full p-2 text-slate-400 text-sm mt-2">取消</button>
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-xl flex flex-col max-h-[85vh]">
+            <div class="p-5 pb-0">
+                <h3 class="font-bold mb-4 text-gray-800 text-lg">匯出與備份</h3>
+                
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <button onclick="doExport('png')" class="p-3 border rounded-xl hover:bg-slate-50 text-slate-700 flex flex-col items-center text-xs font-bold gap-1"><span class="text-xl">🖼️</span> 圖片</button>
+                    <button onclick="doExport('xlsx')" class="p-3 border rounded-xl hover:bg-slate-50 text-slate-700 flex flex-col items-center text-xs font-bold gap-1"><span class="text-xl">📊</span> Excel</button>
+                    <button onclick="doExport('pdf')" class="p-3 border rounded-xl hover:bg-slate-50 text-slate-700 flex flex-col items-center text-xs font-bold gap-1"><span class="text-xl">📄</span> PDF</button>
+                </div>
+                
+                <button onclick="doShare()" class="w-full p-3 border rounded-xl hover:bg-blue-50 text-blue-700 font-bold flex items-center justify-center gap-2 mb-4">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    分享文字清單
+                </button>
+
+                <div class="border-t border-slate-100 my-2 pt-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-slate-500">雲端備份 (按日期管理)</span>
+                        <button onclick="createBackup()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 font-bold flex items-center gap-1">
+                            <span>+</span> 立即備份
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup List Scrollable Area -->
+            <div class="overflow-y-auto flex-1 px-5 pb-5 space-y-2" id="backupListContainer">
+                <div class="text-center py-4 text-xs text-slate-400">正在載入備份紀錄...</div>
+            </div>
+
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="document.getElementById('modalExport').classList.add('hidden')" class="w-full p-2 text-slate-400 text-sm">關閉</button>
+            </div>
         </div>
     </div>
 
@@ -249,7 +281,6 @@
             'SGD': '新幣 (SGD)', 'MYR': '馬幣 (MYR)'
         };
 
-        // TODO: 您的設定已填入
         const firebaseConfig = {
             apiKey: "AIzaSyBCpjQ9W336gYM8fPtZPcy2I5tceEQrsBA",
             authDomain: "shopping-ceef3.firebaseapp.com",
@@ -280,7 +311,6 @@
                     if (user) {
                         handleLoginSuccess(user);
                     } else {
-                        // 預設匿名登入，讓一般人也能用
                         auth.signInAnonymously().catch(e => console.error(e));
                     }
                 });
@@ -322,7 +352,7 @@
                 emailDisp.textContent = user.email;
             }
 
-            // 監聽個人清單 (users/{uid}/shopping_list)
+            // 監聽個人清單
             firebase.firestore().collection('users').doc(user.uid).collection('shopping_list')
                 .orderBy('timestamp', 'desc')
                 .onSnapshot(snap => {
@@ -371,7 +401,10 @@
 
         function bindEvents() {
             document.getElementById('btnSettings').onclick = () => document.getElementById('modalSettings').classList.remove('hidden');
-            document.getElementById('btnExport').onclick = () => document.getElementById('modalExport').classList.remove('hidden');
+            document.getElementById('btnExport').onclick = () => {
+                document.getElementById('modalExport').classList.remove('hidden');
+                if (dbMode === 'cloud') loadBackups(); // Load backups when opening modal
+            };
             document.getElementById('btnDb').onclick = openDbManager;
             document.getElementById('btnConfirmCancel').onclick = () => { document.getElementById('modalConfirm').classList.add('hidden'); onConfirmAction = null; };
             document.getElementById('btnConfirmOk').onclick = () => { if(onConfirmAction) onConfirmAction(); document.getElementById('modalConfirm').classList.add('hidden'); onConfirmAction = null; };
@@ -518,6 +551,130 @@
             });
         };
 
+        // --- 備份功能 ---
+        async function createBackup() {
+            if (dbMode !== 'cloud') return alert("需登入才能使用雲端備份");
+            if (items.length === 0) return alert("清單是空的，無法備份");
+
+            const dateStr = new Date().toISOString(); // Using ISO string for ID
+            const displayDate = new Date().toLocaleString();
+            
+            try {
+                // Save current list as a JSON string to a document in 'backups' subcollection
+                await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups').doc(dateStr).set({
+                    items: items,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    displayName: displayDate
+                });
+                showToast("備份成功");
+                loadBackups();
+            } catch (e) {
+                console.error(e);
+                alert("備份失敗: " + e.message);
+            }
+        }
+
+        async function loadBackups() {
+            if (dbMode !== 'cloud') {
+                document.getElementById('backupListContainer').innerHTML = '<div class="text-center py-4 text-xs text-slate-400">請先登入以檢視備份</div>';
+                return;
+            }
+
+            const container = document.getElementById('backupListContainer');
+            container.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">載入中...</div>';
+
+            try {
+                const snap = await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups')
+                    .orderBy('createdAt', 'desc').limit(10).get();
+
+                if (snap.empty) {
+                    container.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">尚無備份紀錄</div>';
+                    return;
+                }
+
+                container.innerHTML = snap.docs.map(doc => {
+                    const data = doc.data();
+                    const count = data.items ? data.items.length : 0;
+                    // encode JSON to pass to function (simple approach for small data)
+                    // Better approach: fetch on click. Let's fetch on click to be safe.
+                    return `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div>
+                            <div class="text-sm font-bold text-slate-700">${data.displayName || '未命名備份'}</div>
+                            <div class="text-[10px] text-slate-400">${count} 個項目</div>
+                        </div>
+                        <button onclick="restoreBackup('${doc.id}')" class="text-xs bg-white border border-slate-200 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-50 font-bold">還原</button>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-4 text-xs text-red-400">載入失敗</div>';
+            }
+        }
+
+        window.restoreBackup = (docId) => {
+            showConfirm("還原備份", "這將覆蓋您當前的購物清單，確定嗎？", async () => {
+                try {
+                    const doc = await firebase.firestore().collection('users').doc(currentUser.uid).collection('backups').doc(docId).get();
+                    if (!doc.exists) return alert("找不到備份檔案");
+                    
+                    const backupData = doc.data().items || [];
+                    
+                    // Clear current list first
+                    const batch = firebase.firestore().batch();
+                    const listRef = firebase.firestore().collection('users').doc(currentUser.uid).collection('shopping_list');
+                    const currentSnap = await listRef.get();
+                    currentSnap.docs.forEach(d => batch.delete(d.ref));
+                    
+                    // Add backup items
+                    backupData.forEach(item => {
+                        const newDocRef = listRef.doc(); // new ID
+                        batch.set(newDocRef, item);
+                    });
+                    
+                    await batch.commit();
+                    showToast("還原成功！");
+                    document.getElementById('modalExport').classList.add('hidden');
+                } catch (e) {
+                    alert("還原失敗: " + e.message);
+                }
+            });
+        };
+
+        // --- 分享功能 ---
+        window.doShare = () => {
+            if (items.length === 0) return alert("清單是空的");
+            
+            const total = items.reduce((sum, i) => sum + (i.price || 0), 0);
+            const totalConv = Math.round(total * settings.rate);
+            
+            let text = `🛒 我的購物清單 (${new Date().toLocaleDateString()})\n\n`;
+            items.forEach(i => {
+                text += `▫️ ${i.name}: ${i.price} (約${Math.round(i.price * settings.rate)})\n`;
+            });
+            text += `\n💰 總計: ${total} ${settings.base} (約 ${totalConv} ${settings.target})`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: '購物清單',
+                    text: text
+                }).catch(console.error);
+            } else {
+                // Fallback: Copy to clipboard
+                navigator.clipboard.writeText(text).then(() => showToast("已複製文字到剪貼簿"));
+            }
+        };
+
+        // --- 搜尋功能 ---
+        window.filterDbList = (val) => {
+            const term = val.toLowerCase();
+            const list = document.getElementById('dbListContainer');
+            const rows = list.querySelectorAll('div.flex'); // selecting the rows
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(term) ? 'flex' : 'none';
+            });
+        };
+
         async function openDbManager() {
             const modal = document.getElementById('modalDb');
             const container = document.getElementById('dbListContainer');
@@ -532,7 +689,7 @@
             container.innerHTML = '<div class="text-center py-10 text-slate-400">載入中...</div>';
 
             try {
-                const snap = await firebase.firestore().collection('products').orderBy('updatedAt', 'desc').limit(50).get();
+                const snap = await firebase.firestore().collection('products').orderBy('updatedAt', 'desc').limit(100).get();
                 if (snap.empty) { container.innerHTML = '<div class="text-center py-10 text-slate-400">庫存是空的</div>'; return; }
 
                 container.innerHTML = snap.docs.map(doc => {

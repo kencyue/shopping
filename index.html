@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v26 (雙重計數:項目+件數)</title>
+    <title>購物計算機 v27 (排序功能:時間/金額)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -59,6 +59,9 @@
                 </div>
                 
                 <div class="flex gap-2">
+                    <button id="btnSort" class="p-2 bg-blue-500 hover:bg-blue-400 rounded-lg shadow-sm transition-colors border border-blue-400/50" title="切換排序">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
+                    </button>
                     <button id="btnDb" class="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg shadow-sm transition-colors" title="公共庫存">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><database cx="12" cy="12" r="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                     </button>
@@ -347,6 +350,15 @@
         let settings = JSON.parse(localStorage.getItem('exSettings')) || { base: 'TWD', target: 'TWD', rate: 1 };
         let html5QrCode = null;
 
+        // 排序設定 (新增)
+        const SORT_MODES = [
+            { id: 'time_desc', name: '🕒 時間 (新→舊)', fn: (a,b) => b.timestamp - a.timestamp },
+            { id: 'time_asc', name: '🕒 時間 (舊→新)', fn: (a,b) => a.timestamp - b.timestamp },
+            { id: 'price_desc', name: '💲 金額 (高→低)', fn: (a,b) => (b.price*(b.qty||1)) - (a.price*(a.qty||1)) },
+            { id: 'price_asc', name: '💲 金額 (低→高)', fn: (a,b) => (a.price*(a.qty||1)) - (b.price*(b.qty||1)) }
+        ];
+        let currentSortModeId = localStorage.getItem('sortMode') || 'time_desc';
+
         // --- Init ---
         (async function init() {
             initCurrencySelects();
@@ -384,7 +396,7 @@
 
             firebase.firestore().collection('users').doc(user.uid).collection('shopping_list').orderBy('timestamp', 'desc').onSnapshot(snap => {
                 items = snap.docs.map(d => ({ ...d.data(), id: d.id })); 
-                renderList();
+                renderList(); // Render handles sorting
             });
         }
 
@@ -399,7 +411,7 @@
             document.getElementById('receiptTotalBase').textContent = document.getElementById('dispTotal').textContent;
             document.getElementById('receiptTotalTarget').textContent = document.getElementById('dispConverted').textContent;
             document.getElementById('receiptCount').textContent = items.length;
-            document.getElementById('receiptTotalQty').textContent = totalQty; // Export total qty
+            document.getElementById('receiptTotalQty').textContent = totalQty;
             
             document.getElementById('receiptThBase').textContent = `單價 (${settings.base})`;
             document.getElementById('receiptThTarget').textContent = `總約 (${settings.target})`;
@@ -582,6 +594,16 @@
                 else { items=[]; localStorage.setItem('localItems', '[]'); renderList(); }
                 showToast("已清空");
             });
+
+            // 排序按鈕
+            document.getElementById('btnSort').onclick = () => {
+                const currentIndex = SORT_MODES.findIndex(m => m.id === currentSortModeId);
+                const nextIndex = (currentIndex + 1) % SORT_MODES.length;
+                currentSortModeId = SORT_MODES[nextIndex].id;
+                localStorage.setItem('sortMode', currentSortModeId);
+                showToast(`排序: ${SORT_MODES[nextIndex].name}`);
+                renderList();
+            };
 
             document.getElementById('formItem').onsubmit = async (e) => {
                 e.preventDefault();
@@ -788,6 +810,10 @@
         window.delPub = (id) => showConfirm("刪除", "確定刪除此公共條碼？", async () => { await firebase.firestore().collection('products').doc(id).delete(); openDbManager(); showToast("已刪除"); });
         
         function renderList() {
+            // Apply sorting
+            const sortFn = SORT_MODES.find(m => m.id === currentSortModeId)?.fn;
+            if (sortFn) items.sort(sortFn);
+
             // 計算包含數量的總價
             const total = items.reduce((s,i)=>s + ((i.price||0) * (i.qty||1)), 0);
             

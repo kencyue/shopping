@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>購物計算機 v25 (支援小數點價格)</title>
+    <title>購物計算機 v26 (雙重計數:項目+件數)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -87,7 +87,7 @@
                         </div>
                         
                         <div class="text-[10px] bg-blue-400/20 px-2 py-0.5 rounded text-blue-50 border border-blue-300/20">
-                            共 <span id="dispCount" class="font-bold text-white">0</span> 項
+                            共 <span id="dispCount" class="font-bold text-white">0</span> 項 / <span id="dispTotalQty" class="font-bold text-white">0</span> 件
                         </div>
 
                         <span class="text-[10px] opacity-60 ml-1 border-l border-white/20 pl-2">匯率: <span id="dispRate">1</span></span>
@@ -311,7 +311,7 @@
             <tbody id="receiptItems"></tbody>
             <tfoot>
                 <tr style="border-top: 2px solid #334155;">
-                    <td style="padding-top:15px; font-weight:800; color: #334155;">總計 (共<span id="receiptCount">0</span>項)</td>
+                    <td style="padding-top:15px; font-weight:800; color: #334155; font-size:14px;">總計 (共<span id="receiptCount">0</span>項 / <span id="receiptTotalQty">0</span>件)</td>
                     <td colspan="2" style="text-align:right; padding-top:15px; font-weight:800;" id="receiptTotalBase"></td>
                     <td style="text-align:right; padding-top:15px; color:#2563eb; font-weight:800;" id="receiptTotalTarget"></td>
                 </tr>
@@ -393,10 +393,13 @@
             const dateStr = new Date().toLocaleDateString().replace(/\//g, '-');
             const filename = `ShoppingList_${dateStr}`;
             
+            const totalQty = items.reduce((s,i)=>s + (i.qty||1), 0);
+
             document.getElementById('receiptDate').textContent = new Date().toLocaleString();
             document.getElementById('receiptTotalBase').textContent = document.getElementById('dispTotal').textContent;
             document.getElementById('receiptTotalTarget').textContent = document.getElementById('dispConverted').textContent;
             document.getElementById('receiptCount').textContent = items.length;
+            document.getElementById('receiptTotalQty').textContent = totalQty; // Export total qty
             
             document.getElementById('receiptThBase').textContent = `單價 (${settings.base})`;
             document.getElementById('receiptThTarget').textContent = `總約 (${settings.target})`;
@@ -472,9 +475,11 @@
         function doShareText() {
             if (items.length === 0) return alert("清單是空的");
             const total = items.reduce((sum, i) => sum + ((i.price||0) * (i.qty||1)), 0);
+            const totalQty = items.reduce((s,i)=>s + (i.qty||1), 0);
             let text = `🛒 購物清單 (${new Date().toLocaleDateString()})\n\n`;
             items.forEach(i => text += `▫️ ${i.name} ${i.qty>1 ? 'x'+i.qty : ''}: ${i.price* (i.qty||1)}\n`);
             text += `\n💰 總計: ${total.toLocaleString()} ${settings.base} (約 ${Math.round(total*settings.rate).toLocaleString()} ${settings.target})`;
+            text += `\n📦 共 ${items.length} 項 / ${totalQty} 件`;
             if (navigator.share) navigator.share({ title: '購物清單', text: text }).catch(()=>{});
             else { navigator.clipboard.writeText(text); showToast("已複製文字"); }
         }
@@ -786,11 +791,16 @@
             // 計算包含數量的總價
             const total = items.reduce((s,i)=>s + ((i.price||0) * (i.qty||1)), 0);
             
+            // 計算總件數
+            const totalQty = items.reduce((s,i)=>s + (i.qty||1), 0);
+
             document.getElementById('dispTotal').textContent = total.toLocaleString(); 
             document.getElementById('dispConverted').textContent = '$'+Math.round(total*settings.rate).toLocaleString(); 
             document.getElementById('dispRate').textContent = settings.rate;
-            // 更新總項目數
+            
+            // 更新總項目數與總件數
             document.getElementById('dispCount').textContent = items.length;
+            document.getElementById('dispTotalQty').textContent = totalQty;
 
             document.getElementById('listContainer').innerHTML = items.length===0 ? '' : items.map(i=>`
                 <div class="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-100 shadow-sm mb-2">
